@@ -59,3 +59,4 @@ automation:
 
 ## Licence
 MIT © Custody Schedule. Contributions bienvenues (fork, branche feature, PR). Merci à la communauté Home Assistant et aux parents en garde alternée !
+# custody-v1
