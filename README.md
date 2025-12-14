@@ -57,6 +57,10 @@ automation:
 - **v1.2** : multi-enfants, statistiques, export PDF, internationalisation avancée.
 - **v2.0** : mode co-parent, app mobile companion, journal partagé, gestion financière.
 
+## CI/CD & publication
+- Chaque push/PR déclenche le workflow `CI` (lint Flake8/Black/isort + validation HACS).
+- Pour publier une version, créez un tag ou une release `vX.Y.Z` ; le workflow `Release` mettra automatiquement à jour `manifest.json` via `scripts/update_version.py` et poussera le bump.
+
 ## Licence
 MIT © Custody Schedule. Contributions bienvenues (fork, branche feature, PR). Merci à la communauté Home Assistant et aux parents en garde alternée !
 # custody-v1

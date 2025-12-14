@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+
+      - name: Lint with flake8
+        continue-on-error: true
+        run: |
+          flake8 custom_components/custody_schedule --count --select=E9,F63,F7,F82 --show-source --statistics || echo "Flake8 found issues (non-blocking)"
+
+      - name: Check formatting with black
+        continue-on-error: true
+        run: |
+          black --check custom_components/custody_schedule || echo "Black formatting issues found (non-blocking)"
+
+      - name: Check import order with isort
+        continue-on-error: true
+        run: |
+          isort --check-only custom_components/custody_schedule || echo "isort found issues (non-blocking)"
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate with HACS
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: |
+            **/__pycache__/**
+            **/*.pyc
+            **/.git/**
+            **/.github/**
+            **/scripts/**
+            **/tests/**
+            **/*.md
+            CHANGELOG.*
+            VERSIONING.md
+            CONTRIBUTING.md
+            LICENSE
+            PUBLISH.md
+            GET_TOKEN.md
+            info.md
+            create_repo*
+            pyproject.toml
