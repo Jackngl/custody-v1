@@ -73,17 +73,21 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Gather child information (step 1)."""
         errors: dict[str, str] = {}
         if user_input:
-            photo_value = user_input.get(CONF_PHOTO)
-            if photo_value:
-                normalized, error_key = self._normalize_photo(photo_value)
-                if error_key:
-                    errors[CONF_PHOTO] = error_key
+            cleaned_input = dict(user_input)
+            photo_value = cleaned_input.get(CONF_PHOTO)
+            if isinstance(photo_value, str):
+                if photo_value.strip():
+                    normalized, error_key = self._normalize_photo(photo_value)
+                    if error_key:
+                        errors[CONF_PHOTO] = error_key
+                    else:
+                        cleaned_input[CONF_PHOTO] = normalized
                 else:
-                    user_input[CONF_PHOTO] = normalized
+                    cleaned_input.pop(CONF_PHOTO, None)
 
             if not errors:
-                self._data.update(user_input)
-                unique_id = slugify(user_input[CONF_CHILD_NAME])
+                self._data.update(cleaned_input)
+                unique_id = slugify(cleaned_input[CONF_CHILD_NAME])
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
                 return await self.async_step_custody()
@@ -93,7 +97,8 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_CHILD_NAME): cv.string,
                 vol.Optional(CONF_ICON, default="mdi:account-child"): cv.string,
                 vol.Optional(CONF_PHOTO): cv.string,
-            }
+            },
+            extra=vol.ALLOW_EXTRA,
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
