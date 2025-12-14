@@ -82,9 +82,11 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Gather child information (step 1)."""
         errors: dict[str, str] = {}
         if user_input:
-            cleaned_input = dict(user_input)
-
-            name_value = cleaned_input.get(CONF_CHILD_NAME)
+            # Créer une copie propre des entrées en filtrant les clés inattendues
+            cleaned_input = {}
+            
+            # Traitement du nom de l'enfant
+            name_value = user_input.get(CONF_CHILD_NAME)
             if isinstance(name_value, str):
                 display_name = name_value.strip()
                 formatted_name = _format_child_name(display_name)
@@ -96,11 +98,18 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 errors[CONF_CHILD_NAME] = "invalid_child_name"
 
-            icon_value = cleaned_input.get(CONF_ICON)
-            if icon_value and not str(icon_value).startswith("mdi:"):
-                errors[CONF_ICON] = "invalid_icon"
+            # Traitement de l'icône
+            icon_value = user_input.get(CONF_ICON)
+            if icon_value:
+                if isinstance(icon_value, str) and icon_value.startswith("mdi:"):
+                    cleaned_input[CONF_ICON] = icon_value
+                else:
+                    errors[CONF_ICON] = "invalid_icon"
+            else:
+                cleaned_input[CONF_ICON] = "mdi:account-child"  # Valeur par défaut
 
-            photo_value = cleaned_input.get(CONF_PHOTO)
+            # Traitement de la photo
+            photo_value = user_input.get(CONF_PHOTO)
             if isinstance(photo_value, str):
                 if photo_value.strip():
                     normalized, error_key = self._normalize_photo(photo_value)
@@ -108,8 +117,6 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         errors[CONF_PHOTO] = error_key
                     else:
                         cleaned_input[CONF_PHOTO] = normalized
-                else:
-                    cleaned_input.pop(CONF_PHOTO, None)
 
             if not errors:
                 self._data.update(cleaned_input)
@@ -123,8 +130,7 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_CHILD_NAME): cv.string,
                 vol.Optional(CONF_ICON, default="mdi:account-child"): selector.IconSelector(),
                 vol.Optional(CONF_PHOTO): cv.string,
-            },
-            extra=vol.ALLOW_EXTRA,
+            }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
