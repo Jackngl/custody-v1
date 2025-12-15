@@ -127,7 +127,8 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_CHILD_NAME): cv.string,
                 vol.Optional(CONF_ICON, default="mdi:account-child"): selector.IconSelector(),
                 vol.Optional(CONF_PHOTO): cv.string,
-            }
+            },
+            extra=vol.ALLOW_EXTRA,
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
