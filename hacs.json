@@ -2,5 +2,7 @@
   "name": "Custody Schedule",
   "hacs": "1.6.0",
   "content_in_root": false,
-  "render_readme": true
+  "render_readme": true,
+  "homeassistant": "2023.1.0",
+  "hide_default_branch": true
 }
