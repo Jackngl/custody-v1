@@ -183,6 +183,8 @@ class CustodyScheduleManager:
     def _generate_pattern_windows(self, now: datetime) -> list[CustodyWindow]:
         """Create repeating windows from the selected custody type."""
         custody_type = self._config.get("custody_type", "alternate_week")
+        from .const import LOGGER
+        LOGGER.debug("Generating pattern windows with custody_type: %s", custody_type)
         type_def = CUSTODY_TYPES.get(custody_type) or CUSTODY_TYPES["alternate_week"]
         horizon = now + timedelta(days=90)
 

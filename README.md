@@ -232,12 +232,17 @@ Pour chaque enfant configuré, les entités suivantes sont créées automatiquem
 
 | Entité | Type | Description |
 |--------|------|-------------|
-| `binary_sensor.custody_<nom>_presence` | Binary Sensor | État présent/absent (`on`/`off`) |
-| `sensor.custody_<nom>_next_arrival` | Sensor | Prochaine arrivée (datetime) |
-| `sensor.custody_<nom>_next_departure` | Sensor | Prochain départ (datetime) |
-| `sensor.custody_<nom>_days_remaining` | Sensor | Jours restants avant prochain changement |
-| `sensor.custody_<nom>_current_period` | Sensor | Période actuelle (`school`/`vacation`) |
-| `calendar.custody_<nom>` | Calendar | Calendrier avec toutes les périodes |
+| `binary_sensor.<nom>_planning_de_garde_presence` | Binary Sensor | État présent/absent (`on`/`off`) |
+| `sensor.<nom>_planning_de_garde_prochaine_arrivee` | Sensor | Prochaine arrivée (datetime) |
+| `sensor.<nom>_planning_de_garde_prochain_depart` | Sensor | Prochain départ (datetime) |
+| `sensor.<nom>_planning_de_garde_jours_restants` | Sensor | Jours restants avant prochain changement |
+| `sensor.<nom>_planning_de_garde_periode_actuelle` | Sensor | Période actuelle (`school`/`vacation`) |
+| `calendar.<nom>_planning_de_garde_calendrier` | Calendar | Calendrier avec toutes les périodes |
+
+**Note :** `<nom>` correspond au nom de l'enfant en minuscules avec les espaces remplacés par des underscores. Par exemple, pour un enfant nommé "Lucas", les entités seront :
+- `binary_sensor.lucas_planning_de_garde_presence`
+- `sensor.lucas_planning_de_garde_prochaine_arrivee`
+- etc.
 
 **Attributs disponibles :**
 - `vacation_name` : Nom de la période de vacances en cours
@@ -255,7 +260,7 @@ automation:
     description: "Ajuste le chauffage selon la présence de l'enfant"
     trigger:
       - platform: state
-        entity_id: binary_sensor.custody_lucas_presence
+        entity_id: binary_sensor.lucas_planning_de_garde_presence
     action:
       - service: climate.set_preset_mode
         target:
@@ -277,12 +282,12 @@ automation:
     description: "Notifie 1 jour avant l'arrivée"
     trigger:
       - platform: numeric_state
-        entity_id: sensor.custody_lucas_days_remaining
+        entity_id: sensor.lucas_planning_de_garde_jours_restants
         below: 1
         above: 0
     condition:
       - condition: state
-        entity_id: binary_sensor.custody_lucas_presence
+        entity_id: binary_sensor.lucas_planning_de_garde_presence
         state: "off"
     action:
       - service: notify.mobile_app_telephone
@@ -359,15 +364,15 @@ automation:
 type: entities
 title: Planning de garde
 entities:
-  - entity: binary_sensor.custody_lucas_presence
+  - entity: binary_sensor.lucas_planning_de_garde_presence
     name: Présence
-  - entity: sensor.custody_lucas_next_arrival
+  - entity: sensor.lucas_planning_de_garde_prochaine_arrivee
     name: Prochaine arrivée
-  - entity: sensor.custody_lucas_next_departure
+  - entity: sensor.lucas_planning_de_garde_prochain_depart
     name: Prochain départ
-  - entity: sensor.custody_lucas_days_remaining
+  - entity: sensor.lucas_planning_de_garde_jours_restants
     name: Jours restants
-  - entity: sensor.custody_lucas_current_period
+  - entity: sensor.lucas_planning_de_garde_periode_actuelle
     name: Période
   - type: custom:auto-entities
     card:
@@ -375,7 +380,7 @@ entities:
       title: "Détails"
     filter:
       include:
-        - entity_id: sensor.custody_lucas_*
+        - entity_id: sensor.lucas_planning_de_garde_*
           attributes:
             - vacation_name
             - zone
@@ -407,12 +412,12 @@ automation:
     description: "Active le chauffage 2 jours avant l'arrivée"
     trigger:
       - platform: numeric_state
-        entity_id: sensor.custody_lucas_days_remaining
+        entity_id: sensor.lucas_planning_de_garde_jours_restants
         below: 2.5
         above: 1.5
     condition:
       - condition: state
-        entity_id: binary_sensor.custody_lucas_presence
+        entity_id: binary_sensor.lucas_planning_de_garde_presence
         state: "off"
     action:
       - service: climate.set_preset_mode

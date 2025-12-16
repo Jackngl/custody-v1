@@ -422,7 +422,8 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, entry: config_entries.ConfigEntry) -> None:
         self._entry = entry
-        self._data: dict[str, Any] = {}
+        # Initialize with existing data to preserve all options
+        self._data: dict[str, Any] = {**entry.data, **(entry.options or {})}
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Show options menu."""
