@@ -11,59 +11,105 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Debug - Show environment
+        run: |
+          echo "::group::Environment Info"
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "::endgroup::"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from tag
         id: version
         run: |
+          echo "::group::Extracting version from tag"
           TAG_NAME=${GITHUB_REF#refs/tags/}
           VERSION=${TAG_NAME#v}
+          echo "Full tag: $TAG_NAME"
+          echo "Version: $VERSION"
+          if [ -z "$TAG_NAME" ] || [ -z "$VERSION" ]; then
+            echo "ERROR: Could not extract tag name or version" >&2
+            echo "GITHUB_REF: $GITHUB_REF"
+            exit 1
+          fi
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Tag: $TAG_NAME"
-          echo "Version: $VERSION"
+          echo "::endgroup::"
 
       - name: Check if release exists
         id: check_release
         run: |
+          echo "::group::Checking if release exists"
           TAG_NAME="${{ steps.version.outputs.tag_name }}"
           API_URL="https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME"
           echo "Checking release for tag: $TAG_NAME"
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+          echo "API URL: $API_URL"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            "$API_URL")
-          echo "Release check response: $RESPONSE"
-          if [ "$RESPONSE" = "200" ]; then
-            echo "Release $TAG_NAME already exists"
+            "$API_URL" 2>&1)
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          echo "HTTP Response Code: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ Release $TAG_NAME already exists"
+            echo "$BODY" | jq -r '.name, .tag_name, .published_at' 2>/dev/null || echo "Response: $BODY"
             echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif [ "$HTTP_CODE" = "404" ]; then
+            echo "Release $TAG_NAME does not exist (404), will create it"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Release $TAG_NAME does not exist, will create it"
+            echo "⚠ WARNING: Unexpected response code $HTTP_CODE"
+            echo "Response body: $BODY"
+            echo "Will attempt to create release anyway"
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+          echo "Release exists: ${{ steps.check_release.outputs.exists }}"
+          echo "::endgroup::"
 
       - name: Get changelog entry
         if: steps.check_release.outputs.exists == 'false'
         id: changelog
         run: |
+          echo "::group::Getting changelog entry"
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Looking for changelog entry for version: $VERSION"
           if [ -f "CHANGELOG.md" ]; then
-            # Extract changelog entry for this version
-            CHANGELOG=$(awk "/^## \[${{ steps.version.outputs.version }}\]/,/^## \[/" CHANGELOG.md | head -n -1 || echo "")
+            echo "CHANGELOG.md found"
+            CHANGELOG=$(awk "/^## \[$VERSION\]/,/^## \[/" CHANGELOG.md | head -n -1 || echo "")
             if [ -z "$CHANGELOG" ]; then
-              CHANGELOG="## Version ${{ steps.version.outputs.version }}\n\nVoir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour plus de détails."
+              echo "No changelog entry found for version $VERSION, using default"
+              CHANGELOG="## Version $VERSION\n\nVoir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour plus de détails."
+            else
+              echo "Changelog entry found"
             fi
           else
-            CHANGELOG="## Version ${{ steps.version.outputs.version }}\n\nVoir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour plus de détails."
+            echo "CHANGELOG.md not found, using default"
+            CHANGELOG="## Version $VERSION\n\nVoir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour plus de détails."
           fi
           echo "body<<EOF" >> "$GITHUB_OUTPUT"
           echo -e "$CHANGELOG" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "Changelog prepared (length: ${#CHANGELOG} chars)"
+          echo "::endgroup::"
 
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
+        run: |
+          echo "::group::Creating GitHub Release"
+          TAG_NAME="${{ steps.version.outputs.tag_name }}"
+          echo "Creating release for tag: $TAG_NAME"
+          echo "Repository: ${{ github.repository }}"
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
@@ -74,3 +120,44 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Verify release creation
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          echo "::group::Verifying release creation"
+          TAG_NAME="${{ steps.version.outputs.tag_name }}"
+          echo "Waiting 2 seconds for release to be created..."
+          sleep 2
+          API_URL="https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME"
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$API_URL")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ Release $TAG_NAME created successfully"
+            RELEASE_URL=$(echo "$BODY" | jq -r '.html_url' 2>/dev/null || echo "")
+            if [ -n "$RELEASE_URL" ]; then
+              echo "Release URL: $RELEASE_URL"
+            fi
+          else
+            echo "✗ Release creation may have failed (HTTP $HTTP_CODE)"
+            echo "Response: $BODY"
+            exit 1
+          fi
+          echo "::endgroup::"
+
+      - name: Final status
+        if: always()
+        run: |
+          echo "::group::Final Status"
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✓ Create release workflow completed successfully"
+          else
+            echo "✗ Create release workflow failed"
+            exit 1
+          fi
+          echo "::endgroup::"

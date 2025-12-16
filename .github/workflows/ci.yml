@@ -22,23 +22,59 @@ jobs:
 
       - name: Install tooling
         run: |
+          echo "::group::Installing linting tools"
           python -m pip install --upgrade pip
           pip install flake8 black isort
+          echo "Installed versions:"
+          flake8 --version || echo "Flake8 not available"
+          black --version || echo "Black not available"
+          isort --version || echo "isort not available"
+          echo "::endgroup::"
 
       - name: Lint with flake8
         continue-on-error: true
         run: |
-          flake8 custom_components/custody_schedule --count --select=E9,F63,F7,F82 --show-source --statistics || echo "Flake8 found issues (non-blocking)"
+          echo "::group::Running flake8"
+          set +e
+          flake8 custom_components/custody_schedule --count --select=E9,F63,F7,F82 --show-source --statistics
+          FLAKE8_EXIT=$?
+          if [ $FLAKE8_EXIT -eq 0 ]; then
+            echo "✓ Flake8: No critical errors found"
+          else
+            echo "⚠ Flake8 found issues (non-blocking, exit code: $FLAKE8_EXIT)"
+          fi
+          set -e
+          echo "::endgroup::"
 
       - name: Check formatting with black
         continue-on-error: true
         run: |
-          black --check custom_components/custody_schedule || echo "Black formatting issues found (non-blocking)"
+          echo "::group::Checking formatting with black"
+          set +e
+          black --check custom_components/custody_schedule
+          BLACK_EXIT=$?
+          if [ $BLACK_EXIT -eq 0 ]; then
+            echo "✓ Black: Code is properly formatted"
+          else
+            echo "⚠ Black formatting issues found (non-blocking, exit code: $BLACK_EXIT)"
+          fi
+          set -e
+          echo "::endgroup::"
 
       - name: Check import order with isort
         continue-on-error: true
         run: |
-          isort --check-only custom_components/custody_schedule || echo "isort found issues (non-blocking)"
+          echo "::group::Checking import order with isort"
+          set +e
+          isort --check-only custom_components/custody_schedule
+          ISORT_EXIT=$?
+          if [ $ISORT_EXIT -eq 0 ]; then
+            echo "✓ isort: Imports are properly ordered"
+          else
+            echo "⚠ isort found issues (non-blocking, exit code: $ISORT_EXIT)"
+          fi
+          set -e
+          echo "::endgroup::"
 
   validate:
     runs-on: ubuntu-latest
@@ -47,7 +83,23 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate with HACS
+        run: |
+          echo "::group::HACS Validation"
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
         uses: hacs/action@main
         with:
           category: integration
           ignore: brands
+        continue-on-error: false
+
+      - name: HACS Validation Result
+        if: always()
+        run: |
+          echo "::endgroup::"
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✓ HACS validation passed"
+          else
+            echo "✗ HACS validation failed"
+            exit 1
+          fi
