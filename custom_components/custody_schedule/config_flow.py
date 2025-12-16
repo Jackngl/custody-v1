@@ -173,7 +173,13 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_CUSTODY_TYPE, default="alternate_week"): vol.In(sorted(CUSTODY_TYPES.keys())),
+                vol.Required(CONF_CUSTODY_TYPE, default="alternate_week"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=sorted(CUSTODY_TYPES.keys()),
+                        translation_key="custody_type",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Required(CONF_REFERENCE_YEAR, default="even"): vol.In(REFERENCE_YEARS),
                 vol.Required(CONF_START_DAY, default="monday"): vol.In(
                     ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -194,8 +200,20 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_ZONE, default="A"): _zone_selector(),
-                vol.Optional(CONF_VACATION_RULE): vol.In(VACATION_RULES),
-                vol.Optional(CONF_SUMMER_RULE): vol.In(SUMMER_RULES),
+                vol.Optional(CONF_VACATION_RULE): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[None] + VACATION_RULES,
+                        translation_key="vacation_rule",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(CONF_SUMMER_RULE): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[None] + SUMMER_RULES,
+                        translation_key="summer_rule",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
             }
         )
         return self.async_show_form(step_id="vacations", data_schema=schema)
@@ -303,11 +321,19 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_ZONE, default=data.get(CONF_ZONE, "A")): _zone_selector(),
-                vol.Optional(CONF_VACATION_RULE, default=data.get(CONF_VACATION_RULE)): vol.In(
-                    [None] + VACATION_RULES
+                vol.Optional(CONF_VACATION_RULE, default=data.get(CONF_VACATION_RULE)): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[None] + VACATION_RULES,
+                        translation_key="vacation_rule",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
                 ),
-                vol.Optional(CONF_SUMMER_RULE, default=data.get(CONF_SUMMER_RULE)): vol.In(
-                    [None] + SUMMER_RULES
+                vol.Optional(CONF_SUMMER_RULE, default=data.get(CONF_SUMMER_RULE)): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[None] + SUMMER_RULES,
+                        translation_key="summer_rule",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
                 ),
             }
         )

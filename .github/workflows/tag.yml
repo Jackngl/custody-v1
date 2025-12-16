@@ -1,0 +1,50 @@
+name: Tag on main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from manifest
+        id: version
+        run: |
+          VERSION=$(python - <<'PY'
+import json, pathlib
+manifest = pathlib.Path("custom_components/custody_schedule/manifest.json")
+data = json.loads(manifest.read_text(encoding="utf-8"))
+print(data.get("version", "").strip())
+PY
+)
+          if [ -z "$VERSION" ]; then
+            echo "Version not found in manifest" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Check if tag exists
+        id: check
+        run: |
+          git fetch --tags
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"

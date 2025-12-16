@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title>Custody Schedule</title>
+  <desc>Family custody schedule icon</desc>
+  <rect x="6" y="6" width="116" height="116" rx="18" fill="#1e88e5" />
+  <path d="M32 74c0-10 8-18 18-18s18 8 18 18-8 18-18 18S32 84 32 74Zm32-26a14 14 0 1 1 14-14 14 14 0 0 1-14 14Zm22 14h11a7 7 0 0 1 7 7v23a7 7 0 0 1-7 7H74l-6-8 10-7a14 14 0 0 0 8-13c0-7-5-13-12-14Z" fill="#fff"/>
+  <path d="M18 98c0-15 12-28 28-28s28 13 28 28Z" fill="#bbdefb"/>
+</svg>

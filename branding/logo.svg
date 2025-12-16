@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-labelledby="title desc">
+  <title>Custody Schedule</title>
+  <desc>Logo for Custody Schedule integration</desc>
+  <rect x="8" y="12" width="96" height="96" rx="18" fill="#1e88e5"/>
+  <path d="M32 72c0-10 8-18 18-18s18 8 18 18-8 18-18 18S32 82 32 72Zm32-26a14 14 0 1 1 14-14 14 14 0 0 1-14 14Zm22 14h11a7 7 0 0 1 7 7v23a7 7 0 0 1-7 7H74l-6-8 10-7a14 14 0 0 0 8-13c0-7-5-13-12-14Z" fill="#fff"/>
+  <path d="M20 96c0-15 12-28 28-28s28 13 28 28Z" fill="#bbdefb"/>
+  <text x="120" y="54" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#1e88e5" font-weight="700">Custody Schedule</text>
+  <text x="120" y="85" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#1565c0">Planning de garde</text>
+</svg>
