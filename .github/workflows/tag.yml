@@ -100,6 +100,7 @@ PY
           echo "::endgroup::"
 
       - name: Create and push tag
+        id: create_and_push_tag
         if: steps.check_tag.outputs.exists == 'false'
         run: |
           echo "::group::Creating and pushing tag"
@@ -254,9 +255,9 @@ PY
             echo "✗ Workflow failed"
             echo "Failed steps:"
             echo "- Check tag: ${{ steps.check_tag.outcome }}"
-            echo "- Create tag: ${{ steps.create_and_push_tag.outcome || 'N/A' }}"
+            echo "- Create tag: ${{ steps.create_and_push_tag.outcome 'N/A' }}"
             echo "- Check release: ${{ steps.check_release.outcome }}"
             echo "- Create release: ${{ steps.create_release.outcome }}"
-            echo "- Verify release: ${{ steps.verify_release.outcome || 'N/A' }}"
+            echo "- Verify release: ${{ steps.verify_release.outcome || "N/A" }}"
           fi
           echo "::endgroup::"
