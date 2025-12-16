@@ -64,6 +64,26 @@ jobs:
           echo "Version: $VERSION"
           echo "::endgroup::"
 
+      - name: Commit and push version increment
+        run: |
+          echo "::group::Committing and pushing version increment"
+          git add custom_components/custody_schedule/manifest.json
+          if git diff --staged --quiet; then
+            echo "No version change to commit (version already incremented)"
+          else
+            echo "Committing version increment..."
+            git commit -m "chore: auto-increment version to ${{ steps.version.outputs.version }}" || {
+              echo "WARNING: Failed to commit version increment (may already be committed)"
+              exit 0
+            }
+            echo "Pushing version increment commit..."
+            git push origin HEAD:main || {
+              echo "WARNING: Failed to push version increment (may already be pushed)"
+            }
+            echo "✓ Version increment committed and pushed"
+          fi
+          echo "::endgroup::"
+
       - name: Fetch all tags
         run: |
           echo "::group::Fetching tags"
