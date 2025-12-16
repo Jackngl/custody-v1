@@ -212,6 +212,7 @@ PY
 
       - name: Verify release creation
         if: steps.check_release.outputs.exists == 'false'
+        id: verify_release
         run: |
           echo "::group::Verifying release creation"
           TAG_NAME="v${{ steps.version.outputs.version }}"
