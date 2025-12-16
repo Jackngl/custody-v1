@@ -1,0 +1,35 @@
+name: Create Release v1.0.3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create GitHub Release for v1.0.3
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.3
+          name: Release v1.0.3
+          body: |
+            ## Version 1.0.3
+            
+            ### Corrections
+            - Interface 100% en français avec labels directs
+            - Traduction complète des jours de la semaine, années de référence, types de garde
+            - Amélioration des workflows pour création automatique des releases
+            
+            Voir le [README](https://github.com/${{ github.repository }}/blob/main/README.md) pour plus de détails.
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
