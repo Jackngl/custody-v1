@@ -23,21 +23,25 @@ jobs:
           VERSION=${TAG_NAME#v}
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Tag: $TAG_NAME"
           echo "Version: $VERSION"
 
       - name: Check if release exists
         id: check_release
         run: |
+          TAG_NAME="${{ steps.version.outputs.tag_name }}"
+          API_URL="https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME"
+          echo "Checking release for tag: $TAG_NAME"
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ steps.tag_name.outputs.tag_name || format(v{0}, steps.version.outputs.version) }}")
+            "$API_URL")
           echo "Release check response: $RESPONSE"
           if [ "$RESPONSE" = "200" ]; then
-            echo "Release v${{ steps.version.outputs.version }} already exists"
+            echo "Release $TAG_NAME already exists"
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Release v${{ steps.version.outputs.version }} does not exist, will create it"
+            echo "Release $TAG_NAME does not exist, will create it"
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -62,8 +66,8 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          name: Release ${{ steps.version.outputs.tag_name }}
           body: ${{ steps.changelog.outputs.body }}
           draft: false
           prerelease: false
