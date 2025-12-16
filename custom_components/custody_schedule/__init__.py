@@ -18,12 +18,15 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_CHILD_NAME,
     CONF_CHILD_NAME_DISPLAY,
+    CONF_HOLIDAY_API_URL,
     DOMAIN,
+    HOLIDAY_API,
     LOGGER,
     PLATFORMS,
     SERVICE_OVERRIDE_PRESENCE,
     SERVICE_REFRESH_SCHEDULE,
     SERVICE_SET_MANUAL_DATES,
+    SERVICE_TEST_HOLIDAY_API,
     UPDATE_INTERVAL,
 )
 from .schedule import CustodyComputation, CustodyScheduleManager
@@ -42,12 +45,20 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Custody Schedule from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-    holidays: SchoolHolidayClient | None = hass.data[DOMAIN].get("holidays")
-    if holidays is None:
-        holidays = SchoolHolidayClient(hass)
-        hass.data[DOMAIN]["holidays"] = holidays
-
+    
     config = {**entry.data, **(entry.options or {})}
+    api_url = config.get(CONF_HOLIDAY_API_URL) or HOLIDAY_API
+    
+    # Create holiday client with custom API URL if configured
+    # Each entry can have its own API URL, but we share the client instance
+    # If API URL changes, we need to recreate the client
+    holidays: SchoolHolidayClient | None = hass.data[DOMAIN].get("holidays")
+    stored_api_url = hass.data[DOMAIN].get("holiday_api_url")
+    if holidays is None or stored_api_url != api_url:
+        holidays = SchoolHolidayClient(hass, api_url)
+        hass.data[DOMAIN]["holidays"] = holidays
+        hass.data[DOMAIN]["holiday_api_url"] = api_url
+    
     manager = CustodyScheduleManager(hass, config, holidays)
     coordinator = CustodyScheduleCoordinator(hass, manager, entry)
 
@@ -200,6 +211,51 @@ def _register_services(hass: HomeAssistant) -> None:
         SERVICE_REFRESH_SCHEDULE,
         _async_handle_refresh,
         schema=vol.Schema({vol.Required("entry_id"): cv.string}),
+    )
+
+    async def _async_handle_test_api(call: ServiceCall) -> None:
+        """Test the holiday API connection."""
+        entry_id = call.data.get("entry_id")
+        zone = call.data.get("zone", "A")
+        year = call.data.get("year")
+        
+        if entry_id:
+            entry_data = hass.data[DOMAIN].get(entry_id)
+            if not entry_data:
+                raise HomeAssistantError(f"No custody schedule found for entry_id {entry_id}")
+            config = {**entry_data["manager"]._config}
+            api_url = config.get(CONF_HOLIDAY_API_URL) or HOLIDAY_API
+        else:
+            api_url = HOLIDAY_API
+        
+        holidays = SchoolHolidayClient(hass, api_url)
+        result = await holidays.async_test_connection(zone, year)
+        
+        # Log the result
+        if result["success"]:
+            LOGGER.info(
+                "API test successful: %d holidays found for zone %s, year %s",
+                result["holidays_count"],
+                zone,
+                result["school_year"],
+            )
+        else:
+            LOGGER.error("API test failed: %s", result.get("error"))
+        
+        # Store result in hass.data for potential UI display
+        hass.data[DOMAIN]["last_api_test"] = result
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_TEST_HOLIDAY_API,
+        _async_handle_test_api,
+        schema=vol.Schema(
+            {
+                vol.Optional("entry_id"): cv.string,
+                vol.Optional("zone", default="A"): cv.string,
+                vol.Optional("year"): cv.string,
+            }
+        ),
     )
 
 

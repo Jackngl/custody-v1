@@ -28,10 +28,11 @@ class SchoolHoliday:
 class SchoolHolidayClient:
     """Simple cached client around the Education Nationale API."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, api_url: str | None = None) -> None:
         self._hass = hass
         self._session = aiohttp_client.async_get_clientsession(hass)
         self._cache: dict[tuple[str, str], list[SchoolHoliday]] = {}
+        self._api_url = api_url or HOLIDAY_API
 
     def _get_school_year(self, date: datetime) -> str:
         """Convert a calendar date to school year format (e.g., '2024-2025').
@@ -96,9 +97,9 @@ class SchoolHolidayClient:
                 all_holidays.extend(self._cache[cache_key])
                 continue
 
-            url = HOLIDAY_API.format(zone=normalized_zone, year=school_year)
+            url = self._api_url.format(zone=normalized_zone, year=school_year)
             try:
-                LOGGER.debug("Fetching school holidays from %s", url)
+                LOGGER.info("Fetching school holidays from API: %s", url)
                 async with self._session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
                     resp.raise_for_status()
                     payload: dict[str, Any] = await resp.json()
@@ -123,7 +124,7 @@ class SchoolHolidayClient:
 
             holidays: list[SchoolHoliday] = []
             records = payload.get("records", [])
-            LOGGER.debug("Found %d records for zone %s, year %s", len(records), normalized_zone, school_year)
+            LOGGER.info("Found %d records for zone %s, year %s", len(records), normalized_zone, school_year)
             
             for record in records:
                 fields = record.get("fields", {})
@@ -172,8 +173,64 @@ class SchoolHolidayClient:
                 seen.add(key)
                 unique_holidays.append(holiday)
 
-        LOGGER.debug("Returning %d unique holidays for zone %s", len(unique_holidays), zone)
+        LOGGER.info("Returning %d unique holidays for zone %s", len(unique_holidays), zone)
         return unique_holidays
+
+    async def async_test_connection(self, zone: str, year: str | None = None) -> dict[str, Any]:
+        """Test the API connection and return diagnostic information."""
+        if year is None:
+            now = dt_util.utcnow()
+            year = self._get_school_year(now)
+        
+        normalized_zone = self._normalize_zone(zone)
+        url = self._api_url.format(zone=normalized_zone, year=year)
+        
+        result = {
+            "url": url,
+            "zone": zone,
+            "normalized_zone": normalized_zone,
+            "school_year": year,
+            "success": False,
+            "error": None,
+            "records_count": 0,
+            "holidays_count": 0,
+        }
+        
+        try:
+            LOGGER.info("Testing API connection: %s", url)
+            async with self._session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                result["status_code"] = resp.status
+                resp.raise_for_status()
+                payload: dict[str, Any] = await resp.json()
+                records = payload.get("records", [])
+                result["records_count"] = len(records)
+                
+                # Parse holidays
+                holidays = []
+                for record in records:
+                    fields = record.get("fields", {})
+                    start_str = fields.get("start_date") or fields.get("date_debut")
+                    end_str = fields.get("end_date") or fields.get("date_fin")
+                    if start_str and end_str:
+                        holidays.append({
+                            "name": fields.get("description") or fields.get("libelle", "Vacances scolaires"),
+                            "start": start_str,
+                            "end": end_str,
+                        })
+                
+                result["holidays_count"] = len(holidays)
+                result["holidays"] = holidays[:5]  # Limit to first 5 for display
+                result["success"] = True
+                LOGGER.info("API test successful: %d holidays found", len(holidays))
+                
+        except aiohttp.ClientError as err:
+            result["error"] = str(err)
+            LOGGER.error("API test failed: %s", err)
+        except Exception as err:
+            result["error"] = str(err)
+            LOGGER.error("API test unexpected error: %s", err)
+        
+        return result
 
     def clear(self) -> None:
         """Drop the local cache."""

@@ -21,6 +21,7 @@ from .const import (
     CONF_CUSTODY_TYPE,
     CONF_DEPARTURE_TIME,
     CONF_EXCEPTIONS,
+    CONF_HOLIDAY_API_URL,
     CONF_ICON,
     CONF_LOCATION,
     CONF_NOTES,
@@ -35,6 +36,7 @@ from .const import (
     DOMAIN,
     FRENCH_ZONES,
     FRENCH_ZONES_WITH_CITIES,
+    HOLIDAY_API,
     REFERENCE_YEARS,
     SUMMER_RULES,
     VACATION_RULES,
@@ -328,19 +330,41 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_advanced(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Advanced optional settings (step 4)."""
         if user_input:
-            self._data.update(user_input)
+            cleaned = dict(user_input)
+            # Validate API URL if provided
+            api_url = cleaned.get(CONF_HOLIDAY_API_URL)
+            if api_url and api_url.strip():
+                # Basic validation: must contain {year} and {zone} placeholders
+                if "{year}" not in api_url or "{zone}" not in api_url:
+                    return self.async_show_form(
+                        step_id="advanced",
+                        data_schema=self._get_advanced_schema(),
+                        errors={CONF_HOLIDAY_API_URL: "api_url_missing_placeholders"},
+                    )
+                cleaned[CONF_HOLIDAY_API_URL] = api_url.strip()
+            else:
+                cleaned.pop(CONF_HOLIDAY_API_URL, None)
+            self._data.update(cleaned)
             title = self._data.get(CONF_CHILD_NAME_DISPLAY, self._data[CONF_CHILD_NAME])
             return self.async_create_entry(title=title, data=self._data)
 
-        schema = vol.Schema(
+        return self.async_show_form(step_id="advanced", data_schema=self._get_advanced_schema())
+
+    def _get_advanced_schema(self) -> vol.Schema:
+        """Get the advanced settings schema."""
+        return vol.Schema(
             {
                 vol.Optional(CONF_NOTES): cv.string,
                 vol.Optional(CONF_NOTIFICATIONS, default=False): cv.boolean,
                 vol.Optional(CONF_CALENDAR_SYNC, default=False): cv.boolean,
                 vol.Optional(CONF_EXCEPTIONS): cv.string,
+                vol.Optional(
+                    CONF_HOLIDAY_API_URL,
+                    default="",
+                    description={"suggested_value": HOLIDAY_API},
+                ): cv.string,
             }
         )
-        return self.async_show_form(step_id="advanced", data_schema=schema)
 
     @staticmethod
     @callback
@@ -443,16 +467,41 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
     async def async_step_advanced(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Advanced optional settings."""
         if user_input:
-            self._data.update(user_input)
+            cleaned = dict(user_input)
+            # Validate API URL if provided
+            api_url = cleaned.get(CONF_HOLIDAY_API_URL)
+            if api_url and api_url.strip():
+                # Basic validation: must contain {year} and {zone} placeholders
+                if "{year}" not in api_url or "{zone}" not in api_url:
+                    data = {**self._entry.data, **(self._entry.options or {})}
+                    return self.async_show_form(
+                        step_id="advanced",
+                        data_schema=self._get_advanced_schema(data),
+                        errors={CONF_HOLIDAY_API_URL: "api_url_missing_placeholders"},
+                    )
+                cleaned[CONF_HOLIDAY_API_URL] = api_url.strip()
+            else:
+                cleaned.pop(CONF_HOLIDAY_API_URL, None)
+            self._data.update(cleaned)
             return self.async_create_entry(title="", data=self._data)
 
         data = {**self._entry.data, **(self._entry.options or {})}
-        schema = vol.Schema(
+        return self.async_show_form(step_id="advanced", data_schema=self._get_advanced_schema(data))
+
+    def _get_advanced_schema(self, data: dict[str, Any] | None = None) -> vol.Schema:
+        """Get the advanced settings schema."""
+        if data is None:
+            data = {}
+        return vol.Schema(
             {
                 vol.Optional(CONF_NOTES, default=data.get(CONF_NOTES, "")): cv.string,
                 vol.Optional(CONF_NOTIFICATIONS, default=data.get(CONF_NOTIFICATIONS, False)): cv.boolean,
                 vol.Optional(CONF_CALENDAR_SYNC, default=data.get(CONF_CALENDAR_SYNC, False)): cv.boolean,
                 vol.Optional(CONF_EXCEPTIONS, default=data.get(CONF_EXCEPTIONS, "")): cv.string,
+                vol.Optional(
+                    CONF_HOLIDAY_API_URL,
+                    default=data.get(CONF_HOLIDAY_API_URL, ""),
+                    description={"suggested_value": HOLIDAY_API},
+                ): cv.string,
             }
         )
-        return self.async_show_form(step_id="advanced", data_schema=schema)

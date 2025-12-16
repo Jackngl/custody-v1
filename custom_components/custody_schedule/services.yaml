@@ -33,3 +33,18 @@ refresh_schedule:
     entry_id:
       description: ID de l'intégration (visible dans les paramètres).
       example: 1234567890abcdef1234567890abcdef
+
+test_holiday_api:
+  name: Tester l'API des vacances scolaires
+  description: Teste la connexion à l'API des vacances scolaires et affiche les résultats dans les logs.
+  fields:
+    entry_id:
+      description: ID de l'intégration (optionnel, utilise la config de cette intégration).
+      example: 1234567890abcdef1234567890abcdef
+    zone:
+      description: Zone scolaire à tester (A, B, C, Corse, etc.).
+      example: "A"
+      default: "A"
+    year:
+      description: Année scolaire au format "2024-2025" (optionnel, utilise l'année actuelle si non spécifié).
+      example: "2024-2025"

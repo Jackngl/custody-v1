@@ -45,6 +45,7 @@ CONF_NOTIFICATIONS = "notifications"
 CONF_CALENDAR_SYNC = "calendar_sync"
 CONF_EXCEPTIONS = "exceptions"
 CONF_CUSTOM_RULES = "custom_rules"
+CONF_HOLIDAY_API_URL = "holiday_api_url"
 
 REFERENCE_YEARS = ["even", "odd"]
 
@@ -154,3 +155,4 @@ ATTR_DAYS_REMAINING = "days_remaining"
 SERVICE_SET_MANUAL_DATES = "set_manual_dates"
 SERVICE_OVERRIDE_PRESENCE = "override_presence"
 SERVICE_REFRESH_SCHEDULE = "refresh_schedule"
+SERVICE_TEST_HOLIDAY_API = "test_holiday_api"
