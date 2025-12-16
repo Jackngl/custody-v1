@@ -10,7 +10,6 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, Sen
 from homeassistant.const import UnitOfTime
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -75,7 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class CustodyScheduleSensor(CoordinatorEntity[CustodyComputation], SensorEntity):
     """Represent a derived sensor from the custody schedule state."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
     def __init__(
         self,
@@ -88,17 +87,12 @@ class CustodyScheduleSensor(CoordinatorEntity[CustodyComputation], SensorEntity)
         self._definition = definition
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{definition.key}"
-        self._attr_name = definition.name
+        self._attr_name = f"{child_name} Planning de garde {definition.name}"
         self._attr_icon = definition.icon
         self._attr_device_class = definition.device_class
         self._attr_state_class = definition.state_class
         self._attr_native_unit_of_measurement = definition.unit
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=f"{child_name} Planning de garde",
-            manufacturer="Planning de garde",
-            configuration_url="https://www.home-assistant.io/",
-        )
+        self._attr_device_info = None
         photo = entry.data.get(CONF_PHOTO)
         if photo:
             self._attr_entity_picture = photo

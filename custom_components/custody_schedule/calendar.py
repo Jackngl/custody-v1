@@ -8,7 +8,6 @@ from typing import Any
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -35,18 +34,14 @@ async def async_setup_entry(
 class CustodyCalendarEntity(CoordinatorEntity[CustodyComputation], CalendarEntity):
     """Expose the custody planning as a calendar."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
 
     def __init__(self, coordinator: CustodyScheduleCoordinator, entry: ConfigEntry, child_name: str) -> None:
         super().__init__(coordinator)
         self._entry = entry
-        self._attr_name = "Calendrier"
+        self._attr_name = f"{child_name} Planning de garde Calendrier"
         self._attr_unique_id = f"{entry.entry_id}_calendar"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=f"{child_name} Planning de garde",
-            manufacturer="Planning de garde",
-        )
+        self._attr_device_info = None
         photo = entry.data.get(CONF_PHOTO)
         if photo:
             self._attr_entity_picture = photo
