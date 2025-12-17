@@ -415,34 +415,36 @@ class CustodyScheduleManager:
                 window_end = self._apply_time(window_end, self._departure_time)
             elif rule == "first_week_even_year":
                 if start.year % 2 == 0:
+                    # Use first half instead of first week for vacation sharing
                     window_start = self._apply_time(start, self._arrival_time)
-                    window_end = min(end, start + timedelta(days=7))
+                    window_end = start + (end - start) / 2
                     window_end = self._apply_time(window_end, self._departure_time)
                 else:
                     continue
             elif rule == "first_week_odd_year":
                 if start.year % 2 == 1:
+                    # Use first half instead of first week for vacation sharing
                     window_start = self._apply_time(start, self._arrival_time)
-                    window_end = min(end, start + timedelta(days=7))
+                    window_end = start + (end - start) / 2
                     window_end = self._apply_time(window_end, self._departure_time)
                 else:
                     continue
             elif rule == "second_week_even_year":
                 if start.year % 2 == 0:
-                    window_start = start + timedelta(days=7)
+                    # Use second half instead of second week for vacation sharing
+                    window_start = start + (end - start) / 2
                     window_start = self._apply_time(window_start, self._arrival_time)
-                    window_end = min(end, window_start + timedelta(days=7))
-                    window_end = self._apply_time(window_end, self._departure_time)
+                    window_end = self._apply_time(end, self._departure_time)
                     if window_end <= window_start:
                         continue
                 else:
                     continue
             elif rule == "second_week_odd_year":
                 if start.year % 2 == 1:
-                    window_start = start + timedelta(days=7)
+                    # Use second half instead of second week for vacation sharing
+                    window_start = start + (end - start) / 2
                     window_start = self._apply_time(window_start, self._arrival_time)
-                    window_end = min(end, window_start + timedelta(days=7))
-                    window_end = self._apply_time(window_end, self._departure_time)
+                    window_end = self._apply_time(end, self._departure_time)
                     if window_end <= window_start:
                         continue
                 else:

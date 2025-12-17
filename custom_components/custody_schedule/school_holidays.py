@@ -251,7 +251,9 @@ class SchoolHolidayClient:
                 unique_holidays.append(holiday)
 
         # Manual override for Zone C winter holidays 2025-2026
-        # Official calendar shows 21/02/2026 -> 09/03/2026 (not 20/02 -> 08/03 as API sometimes returns)
+        # API returns 20/02/2026 23:00 UTC -> 08/03/2026 23:00 UTC
+        # Which becomes 21/02/2026 00:00 local -> 09/03/2026 00:00 local
+        # Official calendar confirms: 21/02/2026 -> 09/03/2026
         if normalized_zone == "C":
             # Check if we need to add or correct winter holidays 2025-2026
             winter_2026_start = dt_util.parse_datetime("2026-02-21T00:00:00+01:00")
