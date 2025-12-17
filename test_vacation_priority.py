@@ -22,7 +22,7 @@ CONFIG = {
     "custody_type": "even_weekends",  # Weekends pairs chaque année
     "arrival_time": "16:15",  # Vendredi sortie d'école 16:15
     "departure_time": "19:00",  # Dimanche 19:00
-    "vacation_rule": None,  # Géré selon l'année (1ère semaine impaire, 2ème semaine paire)
+    "vacation_rule": "second_half",  # 2ème moitié (calcul du milieu)
     "summer_rule": None,  # Géré séparément (juillet impaire, août paire)
     "zone": "C",
     "reference_year": "even",
@@ -227,91 +227,36 @@ def generate_vacation_windows(now: datetime, vacations: list[dict], arrival_time
                     current += timedelta(days=7)
         else:
             # Règles pour autres vacances (Noël, Hiver, Printemps)
-            # Prendre l'année de début des vacances pour déterminer la règle
-            year = start.year
-            
-            if year % 2 == 1:  # Année impaire -> 1ère semaine complète
-                window_start = start
-                window_end = min(end, start + timedelta(days=7))
+            # Utiliser la 2ème moitié (calcul du milieu)
+            vacation_rule = CONFIG.get("vacation_rule")
+            if vacation_rule == "second_half":
+                # Calculer le milieu des vacances
+                midpoint = start + (end - start) / 2
                 
-                # Créer une fenêtre pour toute la semaine (du lundi au dimanche de la semaine)
-                # Trouver le lundi de la semaine de début
-                monday_of_week = window_start - timedelta(days=window_start.weekday())
-                sunday_of_week = monday_of_week + timedelta(days=6)
+                # Générer les weekends dans la 2ème moitié (du milieu à la fin)
+                current = midpoint
+                while current < end:
+                    # Trouver le vendredi de cette semaine
+                    days_to_friday = (4 - current.weekday()) % 7
+                    if days_to_friday == 0 and current.weekday() == 4:
+                        friday = current
+                    else:
+                        friday = current + timedelta(days=days_to_friday)
+                    
+                    if friday >= midpoint and friday < end:
+                        sunday = friday + timedelta(days=2)
+                        if sunday <= end:
+                            windows.append(
+                                CustodyWindow(
+                                    start=apply_time(friday, arrival_time),
+                                    end=apply_time(sunday, departure_time),
+                                    label=f"{name} - 2ème moitié",
+                                    source="vacation"
+                                )
+                            )
+                    current += timedelta(days=7)
                 
-                # La fenêtre de vacances couvre du vendredi (arrivée) au dimanche (départ)
-                # Trouver le vendredi de cette semaine
-                friday = monday_of_week + timedelta(days=4)  # Vendredi = lundi + 4 jours
-                sunday = min(sunday_of_week, window_end)
-                
-                # S'assurer que c'est dans la période
-                if friday >= window_start and sunday <= window_end:
-                    windows.append(
-                        CustodyWindow(
-                            start=apply_time(friday, arrival_time),
-                            end=apply_time(sunday, departure_time),
-                            label=f"{name} - 1ère semaine complète (année impaire)",
-                            source="vacation"
-                        )
-                    )
-                    # Ajouter une fenêtre couvrant toute la semaine pour le filtrage
-                    windows.append(
-                        CustodyWindow(
-                            start=monday_of_week,
-                            end=sunday_of_week + timedelta(days=1),  # Jusqu'à dimanche 23:59:59
-                            label=f"{name} - Semaine complète (filtrage)",
-                            source="vacation_filter"
-                        )
-                    )
-                
-                # IMPORTANT: Ajouter aussi une fenêtre de filtrage pour toute la période de vacances
-                # pour supprimer les weekends normaux pendant toute la durée des vacances
-                monday_start_week = start - timedelta(days=start.weekday())
-                sunday_end_week = end - timedelta(days=end.weekday()) + timedelta(days=6)
-                windows.append(
-                    CustodyWindow(
-                        start=monday_start_week,
-                        end=sunday_end_week + timedelta(days=1),
-                        label=f"{name} - Période complète (filtrage)",
-                        source="vacation_filter"
-                    )
-                )
-            elif year % 2 == 0:  # Année paire -> 2ème semaine complète
-                # La 2ème semaine commence 7 jours après le début des vacances
-                window_start = start + timedelta(days=7)  # Début de la 2ème semaine
-                window_end = min(end, window_start + timedelta(days=7))
-                
-                # Créer une fenêtre pour toute la semaine (du lundi au dimanche)
-                # Trouver le lundi de la semaine de window_start
-                monday_of_week = window_start - timedelta(days=window_start.weekday())
-                sunday_of_week = monday_of_week + timedelta(days=6)
-                
-                # Trouver le vendredi de cette semaine
-                friday = monday_of_week + timedelta(days=4)  # Vendredi = lundi + 4 jours
-                sunday = min(sunday_of_week, window_end)
-                
-                # S'assurer que c'est dans la période et que friday < sunday
-                if friday >= window_start and sunday <= window_end and friday < sunday:
-                    windows.append(
-                        CustodyWindow(
-                            start=apply_time(friday, arrival_time),
-                            end=apply_time(sunday, departure_time),
-                            label=f"{name} - 2ème semaine complète (année paire)",
-                            source="vacation"
-                        )
-                    )
-                    # Ajouter une fenêtre couvrant toute la semaine pour le filtrage
-                    windows.append(
-                        CustodyWindow(
-                            start=monday_of_week,
-                            end=sunday_of_week + timedelta(days=1),
-                            label=f"{name} - Semaine complète (filtrage)",
-                            source="vacation_filter"
-                        )
-                    )
-                
-                # IMPORTANT: Ajouter aussi une fenêtre de filtrage pour toute la période de vacances
-                # pour supprimer les weekends normaux pendant toute la durée des vacances
+                # Ajouter une fenêtre de filtrage pour toute la période de vacances
                 monday_start_week = start - timedelta(days=start.weekday())
                 sunday_end_week = end - timedelta(days=end.weekday()) + timedelta(days=6)
                 windows.append(
@@ -360,9 +305,7 @@ def main():
     print()
     print("📋 Configuration:")
     print(f"   Type de garde normale: {CONFIG['custody_type']} (weekends pairs)")
-    print(f"   Règle vacances:")
-    print(f"     - Année impaire : 1ère semaine des vacances")
-    print(f"     - Année paire : 2ème semaine des vacances")
+    print(f"   Règle vacances: {CONFIG['vacation_rule']} (2ème moitié, calcul du milieu)")
     print(f"   Juillet: années impaires (mois complet)")
     print(f"   Août: années paires (mois complet)")
     print(f"   Arrivée: {CONFIG['arrival_time']} (vendredi sortie d'école)")
@@ -395,21 +338,9 @@ def main():
             if key not in unique_holidays:
                 unique_holidays[key] = h
         
-        # Ajouter manuellement les vacances d'hiver Zone C 2025-2026 si elles ne sont pas dans l'API
-        # D'après le calendrier officiel: Zone C - Du samedi 21 février au lundi 9 mars 2026
-        winter_2026_exists = any(
-            h["name"] == "Vacances d'Hiver" and 
-            h["start"].year == 2026 and 
-            h["start"].month == 2
-            for h in unique_holidays.values()
-        )
-        if not winter_2026_exists:
-            unique_holidays[("Vacances d'Hiver", datetime(2026, 2, 21).date())] = {
-                "name": "Vacances d'Hiver",
-                "start": datetime(2026, 2, 21, 0, 0),  # Samedi 21 février 2026
-                "end": datetime(2026, 3, 9, 0, 0),  # Lundi 9 mars 2026
-            }
-            print("   ⚠️  Vacances d'Hiver Zone C 2025-2026 ajoutées manuellement (21/02 -> 09/03)")
+        # L'API retourne les vacances d'hiver Zone C 2025-2026 avec les dates 20/02 -> 08/03
+        # Selon le calendrier officiel, c'est 21/02 -> 09/03, mais on utilise les dates de l'API
+        # et on les ajuste pour primaire (vendredi au lieu de samedi)
         
         vacations = [h for h in unique_holidays.values() if h["end"] >= now]
         vacations.sort(key=lambda x: x["start"])
