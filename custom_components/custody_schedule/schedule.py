@@ -415,25 +415,26 @@ class CustodyScheduleManager:
                 window_end = self._apply_time(window_end, self._departure_time)
             elif rule == "first_week_even_year":
                 if start.year % 2 == 0:
-                    # Use first half instead of first week for vacation sharing
+                    # Use first half with exact midpoint time (not departure time)
                     window_start = self._apply_time(start, self._arrival_time)
                     window_end = start + (end - start) / 2
-                    window_end = self._apply_time(window_end, self._departure_time)
+                    # Keep exact midpoint time, don't apply departure_time
                 else:
                     continue
             elif rule == "first_week_odd_year":
                 if start.year % 2 == 1:
-                    # Use first half instead of first week for vacation sharing
+                    # Use first half with exact midpoint time (not departure time)
                     window_start = self._apply_time(start, self._arrival_time)
                     window_end = start + (end - start) / 2
-                    window_end = self._apply_time(window_end, self._departure_time)
+                    # Keep exact midpoint time, don't apply departure_time
                 else:
                     continue
             elif rule == "second_week_even_year":
                 if start.year % 2 == 0:
-                    # Use second half instead of second week for vacation sharing
+                    # Use second half: starts at exact midpoint, ends at Sunday 19:00
                     window_start = start + (end - start) / 2
                     window_start = self._apply_time(window_start, self._arrival_time)
+                    # End is always Sunday at departure_time (19:00) for vacation sharing
                     window_end = self._apply_time(end, self._departure_time)
                     if window_end <= window_start:
                         continue
@@ -441,9 +442,10 @@ class CustodyScheduleManager:
                     continue
             elif rule == "second_week_odd_year":
                 if start.year % 2 == 1:
-                    # Use second half instead of second week for vacation sharing
+                    # Use second half: starts at exact midpoint, ends at Sunday 19:00
                     window_start = start + (end - start) / 2
                     window_start = self._apply_time(window_start, self._arrival_time)
+                    # End is always Sunday at departure_time (19:00) for vacation sharing
                     window_end = self._apply_time(end, self._departure_time)
                     if window_end <= window_start:
                         continue
