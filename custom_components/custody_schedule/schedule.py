@@ -278,11 +278,14 @@ class CustodyScheduleManager:
                 ):
                     saturday = pointer + timedelta(days=5)
                     sunday = pointer + timedelta(days=7)
+                    # Get label from custody type definition
+                    type_label = CUSTODY_TYPES.get(custody_type, {}).get("label", "Garde")
                     windows.append(
                         CustodyWindow(
                             start=self._apply_time(saturday, self._arrival_time),
                             end=self._apply_time(sunday, self._departure_time),
-                            label="Garde - Week-end",
+                            label=f"Garde - {type_label}",
+                            source="pattern",
                         )
                     )
                 pointer += timedelta(days=7)
@@ -313,11 +316,14 @@ class CustodyScheduleManager:
                     # For other cases: if segment is N days, it spans from day 0 to day N-1
                     segment_end = segment_start + timedelta(days=segment["days"] - 1)
                 if segment["state"] == "on":
+                    # Get label from custody type definition
+                    type_label = CUSTODY_TYPES.get(custody_type, {}).get("label", "Garde")
                     windows.append(
                         CustodyWindow(
                             start=self._apply_time(segment_start, self._arrival_time),
                             end=self._apply_time(segment_end, self._departure_time),
-                            label="Garde - Week-end",
+                            label=f"Garde - {type_label}",
+                            source="pattern",
                         )
                     )
                 offset += timedelta(days=segment["days"])
