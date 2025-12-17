@@ -100,7 +100,7 @@ class CustodyScheduleCoordinator(DataUpdateCoordinator[CustodyComputation]):
     async def _async_update_data(self) -> CustodyComputation:
         """Fetch data from the schedule manager."""
         try:
-            state = await self.manager.async_calculate(dt_util.utcnow())
+            state = await self.manager.async_calculate(dt_util.now())
         except Exception as err:
             raise UpdateFailed(f"Unable to compute custody schedule: {err}") from err
 

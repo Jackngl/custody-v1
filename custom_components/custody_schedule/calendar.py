@@ -53,7 +53,7 @@ class CustodyCalendarEntity(CoordinatorEntity[CustodyComputation], CalendarEntit
         if not data:
             return None
 
-        now = dt_util.utcnow()
+        now = dt_util.now()
         upcoming = sorted(
             (window for window in data.windows if window.end > now), key=lambda window: window.start
         )

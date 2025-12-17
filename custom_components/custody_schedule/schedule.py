@@ -114,7 +114,7 @@ class CustodyScheduleManager:
 
     def override_presence(self, state: str, duration: timedelta | None = None) -> None:
         """Force the presence state for an optional duration."""
-        now = dt_util.utcnow()
+        now = dt_util.now()
         until = now + duration if duration else None
         self._presence_override = {"state": state, "until": until}
 
@@ -799,6 +799,9 @@ class CustodyScheduleManager:
             # Only include holidays that start in the current calendar year or later
             # This includes holidays from previous school year if they're in current year
             if holiday.start.year < now.year:
+                continue
+            # Exclude holidays that have already ended (based on system date)
+            if holiday.end < now:
                 continue
             
             # Format dates in French format without time
