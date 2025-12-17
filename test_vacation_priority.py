@@ -227,36 +227,29 @@ def generate_vacation_windows(now: datetime, vacations: list[dict], arrival_time
                     current += timedelta(days=7)
         else:
             # Règles pour autres vacances (Noël, Hiver, Printemps)
-            # Utiliser la 2ème moitié (calcul du milieu)
+            # Utiliser la 2ème moitié (calcul du milieu) - UNE SEULE fenêtre continue
             vacation_rule = CONFIG.get("vacation_rule")
             if vacation_rule == "second_half":
                 # Calculer le milieu des vacances
                 midpoint = start + (end - start) / 2
                 
-                # Générer les weekends dans la 2ème moitié (du milieu à la fin)
-                current = midpoint
-                while current < end:
-                    # Trouver le vendredi de cette semaine
-                    days_to_friday = (4 - current.weekday()) % 7
-                    if days_to_friday == 0 and current.weekday() == 4:
-                        friday = current
-                    else:
-                        friday = current + timedelta(days=days_to_friday)
-                    
-                    if friday >= midpoint and friday < end:
-                        sunday = friday + timedelta(days=2)
-                        if sunday <= end:
-                            windows.append(
-                                CustodyWindow(
-                                    start=apply_time(friday, arrival_time),
-                                    end=apply_time(sunday, departure_time),
-                                    label=f"{name} - 2ème moitié",
-                                    source="vacation"
-                                )
-                            )
-                    current += timedelta(days=7)
+                # Générer UNE SEULE fenêtre continue pour toute la 2ème moitié
+                # Du milieu (avec heure d'arrivée) à la fin (avec heure de départ)
+                window_start = apply_time(midpoint, arrival_time)
+                window_end = apply_time(end, departure_time)
+                
+                if window_end > window_start:
+                    windows.append(
+                        CustodyWindow(
+                            start=window_start,
+                            end=window_end,
+                            label=f"{name} - 2ème moitié",
+                            source="vacation"
+                        )
+                    )
                 
                 # Ajouter une fenêtre de filtrage pour toute la période de vacances
+                # pour supprimer les weekends normaux pendant toute la durée des vacances
                 monday_start_week = start - timedelta(days=start.weekday())
                 sunday_end_week = end - timedelta(days=end.weekday()) + timedelta(days=6)
                 windows.append(
