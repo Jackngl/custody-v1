@@ -791,11 +791,18 @@ class CustodyScheduleManager:
         sorted_holidays = sorted(holidays, key=lambda h: h.start)
         
         # Build raw holidays list for debugging/display
-        # Filter to only show holidays that haven't ended yet
+        # Filter to only show holidays from current school year onwards
+        # School year starts in September, so filter holidays starting from September of current year
         school_holidays_raw = []
+        current_school_year_start = datetime(now.year, 9, 1, tzinfo=now.tzinfo)
+        # If we're before September, the school year started in September of previous year
+        if now.month < 9:
+            current_school_year_start = datetime(now.year - 1, 9, 1, tzinfo=now.tzinfo)
+        
         for holiday in sorted_holidays:
-            # Only include holidays that haven't ended yet (end date is in the future)
-            if holiday.end < now:
+            # Only include holidays from the current school year (starting from September)
+            # This excludes holidays from previous school years (e.g., 2024-2025 when we're in 2025-2026)
+            if holiday.start < current_school_year_start:
                 continue
             
             # Format dates in French format without time
