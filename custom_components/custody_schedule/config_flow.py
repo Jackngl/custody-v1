@@ -105,7 +105,6 @@ def _custody_type_selector() -> selector.SelectSelector:
     """Create a custody type selector with French labels."""
     translations = {
         "alternate_week": "Semaines alternées (1/1)",
-        "alternate_weekend": "Week-end sur 2",
         "even_weekends": "Week-ends semaines paires",
         "odd_weekends": "Week-ends semaines impaires",
         "two_two_three": "2-2-3",

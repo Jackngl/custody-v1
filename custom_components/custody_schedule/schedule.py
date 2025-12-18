@@ -237,7 +237,7 @@ class CustodyScheduleManager:
         """Generate presence windows from base pattern and vacation/custom rules.
         
         Two separate planning systems:
-        1. Weekend/Pattern planning: Based on custody_type (even_weekends, alternate_weekend, etc.)
+        1. Weekend/Pattern planning: Based on custody_type (even_weekends, alternate_week, etc.)
         2. Vacation planning: Based on vacation_rule (first_week_odd_year, first_half, etc.)
         
         Priority: Vacation rules > Custom rules > Normal pattern rules
@@ -371,62 +371,22 @@ class CustodyScheduleManager:
         pattern = type_def["pattern"]
         windows: list[CustodyWindow] = []
         reference_start = self._reference_start(now, custody_type)
-        
-        # Get French holidays for current and next year
-        holidays = get_french_holidays(now.year) | get_french_holidays(now.year + 1)
-        
-        # For alternate_weekend, _reference_start returns the Friday that starts the "on" period
-        # But the pattern starts with "off" period, so we need to go back 12 days
-        if custody_type == "alternate_weekend":
-            # Go back to the start of the cycle (12 days before the "on" period)
-            pointer = reference_start - timedelta(days=12)
-        else:
-            pointer = reference_start
+        pointer = reference_start
 
         while pointer < horizon:
             offset = timedelta()
             for segment in pattern:
                 segment_start = pointer + offset
-                # For alternate_weekend with 2 days "on", it means Friday to Sunday
-                # So we need segment_start + 2 days to get to Sunday (Fri=0, Sat=1, Sun=2)
-                if custody_type == "alternate_weekend" and segment["state"] == "on":
-                    segment_end = segment_start + timedelta(days=2)  # Friday -> Sunday
-                else:
-                    # For other cases: if segment is N days, it spans from day 0 to day N-1
-                    segment_end = segment_start + timedelta(days=segment["days"] - 1)
+                # For other cases: if segment is N days, it spans from day 0 to day N-1
+                segment_end = segment_start + timedelta(days=segment["days"] - 1)
                 if segment["state"] == "on":
-                    # Check for public holidays that extend the weekend
-                    window_start = segment_start
-                    window_end = segment_end
-                    label_suffix = ""
-                    
-                    # For weekend custody types, check for holidays
-                    if custody_type in ("alternate_weekend",):
-                        friday = segment_start
-                        sunday = segment_end
-                        monday = sunday + timedelta(days=1)
-                        thursday = friday - timedelta(days=1)
-                        
-                        friday_is_holiday = friday.date() in holidays
-                        monday_is_holiday = monday.date() in holidays
-                        
-                        if friday_is_holiday:
-                            # Vendredi férié: start Thursday instead
-                            window_start = thursday
-                            label_suffix = " + Vendredi férié"
-                        
-                        if monday_is_holiday:
-                            # Lundi férié: extend to Monday
-                            window_end = monday
-                            label_suffix = " + Lundi férié" if not label_suffix else " + Pont"
-                    
                     # Get label from custody type definition
                     type_label = CUSTODY_TYPES.get(custody_type, {}).get("label", "Garde")
                     windows.append(
                         CustodyWindow(
-                            start=self._apply_time(window_start, self._arrival_time),
-                            end=self._apply_time(window_end, self._departure_time),
-                            label=f"Garde - {type_label}{label_suffix}",
+                            start=self._apply_time(segment_start, self._arrival_time),
+                            end=self._apply_time(segment_end, self._departure_time),
+                            label=f"Garde - {type_label}",
                             source="pattern",
                         )
                     )
@@ -816,61 +776,6 @@ class CustodyScheduleManager:
         if custody_type in ("even_weekends", "odd_weekends"):
             target_parity = 0 if custody_type == "even_weekends" else 1
             base = self._first_monday_with_week_parity(reference_year, target_parity)
-        elif custody_type == "alternate_weekend":
-            # For alternate_weekend, the pattern is: 12 days off, 2 days on
-            # The "on" period is the weekend (Friday-Sunday)
-            # We need to find the Friday that starts the next "on" period
-            from .const import LOGGER
-            start_day = WEEKDAY_LOOKUP.get(self._config.get(CONF_START_DAY, "friday").lower(), 4)
-            
-            # Find the next Friday from now
-            days_to_friday = (start_day - now.weekday()) % 7
-            if days_to_friday == 0:
-                # Today is Friday
-                if now.time() < self._arrival_time:
-                    days_to_friday = 0  # Use today
-                else:
-                    days_to_friday = 7  # Use next Friday
-            
-            next_friday = now + timedelta(days=days_to_friday)
-            next_friday = next_friday.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            LOGGER.debug("alternate_weekend: now=%s, days_to_friday=%d, next_friday=%s", 
-                        now, days_to_friday, next_friday)
-            
-            # For alternate_weekend, we need to determine which Friday in the 2-week cycle
-            # The cycle alternates every 2 weeks: week 1 (off), week 2 (on)
-            # We use the reference year to determine the cycle phase
-            # Find the first Friday of the reference year
-            anchor = datetime(reference_year, 1, 1, tzinfo=self._tz)
-            days_to_first_friday = (start_day - anchor.weekday()) % 7
-            if days_to_first_friday == 0:
-                days_to_first_friday = 7
-            first_friday_ref = anchor + timedelta(days=days_to_first_friday)
-            
-            # Calculate how many weeks since the first Friday of reference year
-            weeks_since_ref = (next_friday - first_friday_ref).days // 7
-            # Determine which week in the 2-week cycle (0 or 1)
-            cycle_week = weeks_since_ref % 2
-            
-            LOGGER.debug("alternate_weekend: first_friday_ref=%s, weeks_since_ref=%d, cycle_week=%d, reference_year=%d", 
-                        first_friday_ref, weeks_since_ref, cycle_week, reference_year)
-            
-            # The "on" period depends on the reference year parity:
-            # - If reference year is even: cycle_week == 0 means "on"
-            # - If reference year is odd: cycle_week == 1 means "on"
-            is_even_year = reference_year % 2 == 0
-            is_on_period = (cycle_week == 0) if is_even_year else (cycle_week == 1)
-            
-            if not is_on_period:
-                # We're in the "off" period, go to next Friday (which will be "on")
-                LOGGER.debug("alternate_weekend: in 'off' period, moving to next Friday (on)")
-                next_friday += timedelta(days=7)  # Next Friday
-            else:
-                LOGGER.debug("alternate_weekend: already at 'on' period")
-            
-            LOGGER.debug("alternate_weekend: final reference_start=%s", next_friday)
-            return next_friday
         else:
             base = datetime(reference_year, 1, 1, tzinfo=self._tz)
 
