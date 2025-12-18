@@ -353,11 +353,17 @@ class CustodyScheduleManager:
             start = self._adjust_vacation_start(holiday.start, school_level)
             end = holiday.end
             
-            # Midpoint is calculated on official dates from API
-            midpoint = holiday.start + (holiday.end - holiday.start) / 2
-            
-            # End is Sunday at departure_time if API says Monday
+            # End is Sunday at departure_time if API says Monday (school resumes)
             forced_end = self._force_vacation_end(holiday.end)
+            
+            # Calculate custody window start (Friday at arrival_time for primary)
+            custody_start = self._apply_time(start, self._arrival_time)
+            
+            # Midpoint is calculated between actual custody times:
+            # - Start: Friday at arrival_time (16:15)
+            # - End: Sunday at departure_time (19:00)
+            # This gives the exact midpoint for sharing vacation time
+            midpoint = custody_start + (forced_end - custody_start) / 2
             
             if forced_end < now:
                 continue
@@ -905,28 +911,37 @@ class CustodyScheduleManager:
         )
         
         def _calculate_vacation_window_end(holiday_start: datetime, holiday_end: datetime, rule: str | None) -> datetime:
-            """Calculate the actual end of the custody window based on vacation rule."""
+            """Calculate the actual end of the custody window based on vacation rule.
+            
+            Uses the same calculation as _generate_vacation_windows:
+            - Midpoint is calculated between custody_start (Fri 16:15) and forced_end (Sun 19:00)
+            - This gives the exact midpoint for sharing vacation time
+            """
             if not rule:
                 return self._force_vacation_end(holiday_end)
             
-            # Midpoint is calculated on official dates from API
-            midpoint = holiday_start + (holiday_end - holiday_start) / 2
+            # Get effective custody boundaries
             forced_end = self._force_vacation_end(holiday_end)
+            custody_start = self._apply_time(holiday_start, self._arrival_time)
+            
+            # Midpoint is calculated between actual custody times
+            # This matches the calculation in _generate_vacation_windows
+            midpoint = custody_start + (forced_end - custody_start) / 2
             
             # Calculate based on the rule
             if rule in ("first_week_even_year", "first_week_odd_year", "first_half"):
-                # First half: ends at exact midpoint
+                # First half: ends at exact midpoint between custody times
                 return midpoint
             elif rule in ("second_week_even_year", "second_week_odd_year", "second_half"):
                 # Second half: ends at forced Sunday end
                 return forced_end
             elif rule == "first_week":
                 # First week: ends 7 days after start
-                week_end = min(forced_end, holiday_start + timedelta(days=7))
+                week_end = min(forced_end, custody_start + timedelta(days=7))
                 return self._apply_time(week_end, self._departure_time)
             elif rule == "second_week":
                 # Second week: starts 7 days after holiday start, ends 7 days later
-                week_start = holiday_start + timedelta(days=7)
+                week_start = custody_start + timedelta(days=7)
                 week_end = min(forced_end, week_start + timedelta(days=7))
                 return self._apply_time(week_end, self._departure_time)
             else:
