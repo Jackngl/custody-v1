@@ -12,8 +12,8 @@
         }
       },
       "custody": {
-        "title": "Règles de garde",
-        "description": "Choisir le rythme et les horaires.",
+        "title": "Garde classique (weekends/semaines)",
+        "description": "Configurer la garde normale hors vacances scolaires. Les jours fériés (vendredi/lundi) étendent automatiquement les weekends.",
         "data": {
           "custody_type": "Type de garde",
           "reference_year": "Année de référence (paire/impaire)",
@@ -26,7 +26,7 @@
       },
       "vacations": {
         "title": "Vacances scolaires",
-        "description": "Sélectionner la zone et les règles pendant les vacances.",
+        "description": "Configurer les règles de garde pendant les vacances scolaires. Les vacances priment sur la garde classique.",
         "data": {
           "zone": "Zone scolaire",
           "vacation_rule": "Règle vacances",
@@ -58,8 +58,8 @@
         "description": "Choisissez ce que vous souhaitez modifier."
       },
       "custody": {
-        "title": "Type de garde",
-        "description": "Modifier le type de garde, l'année de référence et le jour de départ du cycle.",
+        "title": "Garde classique (weekends/semaines)",
+        "description": "Modifier la garde normale hors vacances scolaires. Les jours fériés étendent automatiquement les weekends.",
         "data": {
           "custody_type": "Type de garde",
           "reference_year": "Année de référence (paire/impaire)",
@@ -68,8 +68,8 @@
         }
       },
       "schedule": {
-        "title": "Horaires et lieu",
-        "description": "Modifier les horaires d'arrivée/départ et le lieu d'échange.",
+        "title": "Horaires et lieu (garde classique)",
+        "description": "Modifier les horaires d'arrivée/départ et le lieu d'échange pour la garde normale.",
         "data": {
           "arrival_time": "Heure d'arrivée",
           "departure_time": "Heure de départ",
@@ -77,8 +77,8 @@
         }
       },
       "vacations": {
-        "title": "Zone scolaire et règles vacances",
-        "description": "Modifier la zone scolaire (API) et les règles pendant les vacances.",
+        "title": "Vacances scolaires",
+        "description": "Modifier la zone scolaire et les règles de garde pendant les vacances. Les vacances priment sur la garde classique.",
         "data": {
           "zone": "Zone scolaire",
           "vacation_rule": "Règle vacances",

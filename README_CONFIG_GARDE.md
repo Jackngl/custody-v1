@@ -1,18 +1,57 @@
-# 📖 Guide de Configuration - Gestion de Garde Normale
+# 📖 Guide de Configuration - Garde Classique (Weekends/Semaines)
 
-Ce guide explique comment configurer la **garde normale** (weekends et semaines alternées) dans l'application Planning de garde.
+Ce guide explique comment configurer la **garde classique** (weekends et semaines alternées) dans l'application Planning de garde.
 
-> ⚠️ **Note** : Ce guide concerne uniquement la garde normale. Pour les vacances scolaires, voir la documentation des règles de vacances.
+> ⚠️ **Important** : 
+> - Ce guide concerne **uniquement la garde classique** (hors vacances scolaires)
+> - Les **vacances scolaires** sont configurées séparément et ont **priorité absolue** sur la garde classique
+> - Les **jours fériés** (vendredi/lundi) étendent automatiquement les weekends de garde classique
+> - Pour les vacances scolaires, voir la documentation séparée des règles de vacances
 
 ---
 
 ## 📋 Table des matières
 
-1. [Types de garde disponibles](#types-de-garde-disponibles)
-2. [Configuration de base](#configuration-de-base)
-3. [Types de garde détaillés](#types-de-garde-détaillés)
-4. [Gestion des jours fériés](#gestion-des-jours-fériés)
-5. [Exemples de configuration](#exemples-de-configuration)
+1. [Séparation garde classique / vacances scolaires](#séparation-garde-classique--vacances-scolaires)
+2. [Types de garde disponibles](#types-de-garde-disponibles)
+3. [Configuration de base](#configuration-de-base)
+4. [Types de garde détaillés](#types-de-garde-détaillés)
+5. [Gestion des jours fériés](#gestion-des-jours-fériés)
+6. [Exemples de configuration](#exemples-de-configuration)
+
+---
+
+## 🔀 Séparation garde classique / vacances scolaires
+
+L'application sépare clairement **deux systèmes de garde indépendants** :
+
+### 1. **Garde classique** (ce guide)
+- **Configuration** : Masque de saisie "Garde classique (weekends/semaines)"
+- **Période** : Hors vacances scolaires uniquement
+- **Fonctionnalités** :
+  - Weekends alternés, semaines alternées, rythmes 2-2-3, etc.
+  - Extension automatique avec jours fériés (vendredi/lundi)
+  - Basé sur cycles ou parité ISO des semaines
+
+### 2. **Vacances scolaires** (documentation séparée)
+- **Configuration** : Masque de saisie "Vacances scolaires"
+- **Période** : Pendant les vacances scolaires uniquement
+- **Fonctionnalités** :
+  - Règles par moitié, par semaine, par parité d'année
+  - Calcul automatique du milieu exact des vacances
+  - Priorité absolue sur la garde classique
+
+### ⚠️ Règle de priorité
+
+```
+Vacances scolaires > Jours fériés > Garde classique
+```
+
+- **Pendant les vacances** : Seules les règles de vacances s'appliquent
+- **Hors vacances** : La garde classique s'applique, avec extension fériée si applicable
+- **Jours fériés pendant vacances** : Ignorés (les vacances priment déjà)
+
+---
 
 ---
 
@@ -470,20 +509,42 @@ school_level: "primary"
 
 ## ⚠️ Notes importantes
 
+### Séparation des configurations
+
+L'application utilise **deux masques de saisie distincts** :
+
+1. **Masque "Garde classique"** :
+   - Type de garde (alternate_week, even_weekends, etc.)
+   - Année de référence
+   - Horaires d'arrivée/départ
+   - Jour de départ du cycle
+   - Niveau scolaire
+   - Lieu d'échange
+   - **+ Extension automatique avec jours fériés**
+
+2. **Masque "Vacances scolaires"** :
+   - Zone scolaire (A/B/C)
+   - Règle vacances (first_week_odd_year, etc.)
+   - Règle grandes vacances (august_even_year, etc.)
+   - **Configuration complètement séparée**
+
 ### Priorité des règles
 
 1. **Vacances scolaires** (priorité absolue)
-   - Pendant les vacances, les règles de garde normale sont **complètement ignorées**
+   - Pendant les vacances, les règles de garde classique sont **complètement ignorées**
    - Les jours fériés pendant les vacances sont également ignorés
    - Seules les règles de vacances s'appliquent
+   - **Configuré dans le masque "Vacances scolaires"**
 
 2. **Jours fériés** (extension des weekends)
-   - S'appliquent uniquement aux weekends de garde normale
+   - S'appliquent uniquement aux weekends de garde classique
    - N'ont aucun effet pendant les vacances scolaires
+   - **Géré automatiquement** dans la garde classique
 
-3. **Garde normale** (weekends/semaines)
+3. **Garde classique** (weekends/semaines)
    - S'applique uniquement hors vacances scolaires
    - Respecte les jours fériés pour l'extension
+   - **Configuré dans le masque "Garde classique"**
 
 ### Champ "Jour de départ du cycle"
 
