@@ -340,23 +340,6 @@ L'application **étend automatiquement** les weekends et semaines de garde lorsq
 | **Vendredi férié** | Ven 16:15 → Dim 19:00 | **Jeu 16:15** → Dim 19:00 |
 | **Pont (les deux)** | Ven 16:15 → Dim 19:00 | **Jeu 16:15 → Lun 19:00** |
 
-### Jours fériés pris en compte
-
-**Jours fixes** :
-- 1er janvier (Jour de l'An)
-- 1er mai (Fête du Travail)
-- 8 mai (Victoire 1945)
-- 14 juillet (Fête Nationale)
-- 15 août (Assomption)
-- 1er novembre (Toussaint)
-- 11 novembre (Armistice)
-- 25 décembre (Noël)
-
-**Jours variables** (basés sur Pâques) :
-- Lundi de Pâques
-- Jeudi de l'Ascension
-- Lundi de Pentecôte
-
 ### Exemples
 
 **Exemple 1 : Lundi de Pâques (21 avril 2025)**

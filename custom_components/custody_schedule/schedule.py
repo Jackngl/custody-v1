@@ -32,9 +32,9 @@ def _easter_date(year: int) -> date:
 def get_french_holidays(year: int) -> set[date]:
     """Return set of French public holidays for a given year.
     
-    These are the official jours fériés in France:
-    - Fixed dates: Jan 1, May 1, May 8, Jul 14, Aug 15, Nov 1, Nov 11, Dec 25
-    - Variable dates: Easter Monday, Ascension Thursday, Whit Monday
+    Calculates all official French public holidays (jours fériés).
+    Note: Holidays that fall during school vacations are automatically excluded
+    from custody extensions (vacations have priority).
     """
     holidays = set()
     
