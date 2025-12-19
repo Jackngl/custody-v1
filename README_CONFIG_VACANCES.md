@@ -190,23 +190,27 @@ L'application détermine automatiquement quelle partie des vacances vous avez se
 #### 1. Première partie (`reference_year: "odd"`)
 
 **Fonctionnement** :
-- Garde la **première partie** des vacances (1ère semaine, 1ère moitié, Juillet pour l'été)
+- Garde la **première partie** des vacances pour **toutes les vacances scolaires**
 - **Uniquement en années impaires** (2025, 2027, ...)
-- Années paires : pas de garde (car c'est la 2ème partie)
+- Années paires : pas de garde (car c'est la 2ème partie, l'autre parent a la garde)
 - **Milieu calculé automatiquement** pour les règles de moitié : Date/heure exacte au milieu de la période effective
 - Début : Vendredi 16:15 (sortie d'école) ou samedi selon niveau
 - Fin : Milieu exact (pour moitié) ou Dimanche 19:00 (pour semaine)
+- **S'applique à** : Noël, Hiver, Printemps, Toussaint, Été (si aucune règle d'été spécifique)
 
-**Configuration** :
+**Configuration Parent A** :
 ```yaml
 zone: "C"
-reference_year: "odd"  # 1ère partie
+reference_year: "odd"  # 1ère partie en années impaires
 school_level: "primary"
 ```
 
-**Exemple** (Vacances de Noël 2025) :
-- 2025 (impaire) : ✅ 1ère moitié (19/12/2025 16:15 → 27/12/2025 17:37:30)
-- 2026 (paire) : ❌ Pas de garde (car c'est la 2ème partie)
+**Exemples pour Parent A** :
+- **Vacances de Noël 2025** (impaire) : ✅ 1ère moitié (19/12/2025 16:15 → 27/12/2025 17:37:30)
+- **Vacances d'Hiver 2025** (impaire) : ✅ 1ère moitié
+- **Vacances de Printemps 2025** (impaire) : ✅ 1ère moitié
+- **Vacances de la Toussaint 2025** (impaire) : ✅ 1ère moitié
+- **Vacances de Noël 2026** (paire) : ❌ Pas de garde (car c'est la 2ème partie, le parent B a la garde)
 
 ---
 
