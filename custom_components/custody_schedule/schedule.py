@@ -982,12 +982,8 @@ class CustodyScheduleManager:
 
             # Summer special-case
             if summer_rule and self._is_summer_break(holiday_obj):
-                if summer_rule == "summer_half_parity":
-                    cutoff = datetime(eff_start.year, 7, 16, tzinfo=eff_start.tzinfo)
-                    cutoff = self._apply_time(cutoff, self._arrival_time)
-                    cutoff = min(max(cutoff, eff_start), eff_end)
-                    return (cutoff, eff_end) if eff_start.year % 2 == 0 else (eff_start, cutoff)
-                # Other summer rules generate their own windows; fall back to the full effective interval
+                # All summer rules (summer_parity_auto, july_first_half, etc.) generate their own windows
+                # via _summer_windows method; fall back to the full effective interval for segment calculation
                 return eff_start, eff_end
 
             # Automatic vacation rule based on reference_year parity
