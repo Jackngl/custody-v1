@@ -192,29 +192,6 @@ class CustodyScheduleManager:
         )
         # next_window doit être une fenêtre qui commence dans le futur ET qui se termine dans le futur
         next_window = next((window for window in windows if window.start > now_local and window.end > now_local), None)
-        
-        # DEBUG: Log pour identifier le problème du 27 janvier
-        from .const import LOGGER
-        if next_window:
-            LOGGER.debug(
-                "next_window trouvé: %s → %s (source: %s, label: %s). Total fenêtres: %d",
-                next_window.start.strftime("%A %d %B %Y à %H:%M"),
-                next_window.end.strftime("%d %B %H:%M"),
-                next_window.source,
-                next_window.label,
-                len(windows)
-            )
-            # Log les 5 premières fenêtres pour debug
-            for i, w in enumerate(windows[:5], 1):
-                if w.start > now_local:
-                    LOGGER.debug(
-                        "  Fenêtre %d: %s → %s (source: %s, label: %s)",
-                        i,
-                        w.start.strftime("%A %d %B %Y à %H:%M"),
-                        w.end.strftime("%d %B %H:%M"),
-                        w.source,
-                        w.label
-                    )
 
         override_state = self._evaluate_override(now_local)
         is_present = override_state if override_state is not None else current_window is not None
@@ -989,6 +966,8 @@ class CustodyScheduleManager:
             # Use reference_year to determine parity (even = even weeks, odd = odd weeks)
             target_parity = 0 if desired == "even" else 1
             base = self._first_monday_with_week_parity(reference_year, target_parity)
+            # For week-parity modes, always anchor on Monday; ignore start_day.
+            return base
         else:
             base = datetime(reference_year, 1, 1, tzinfo=self._tz)
 
