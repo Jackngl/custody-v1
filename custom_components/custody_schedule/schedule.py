@@ -192,13 +192,28 @@ class CustodyScheduleManager:
         next_arrival = None
         next_departure = None
         if is_present:
+            # En garde actuellement
             current = current_window if current_window else self._build_virtual_window(now_local)
+            # next_departure est la fin de la garde actuelle (doit être dans le futur)
             next_departure = current.end
             if override_state is True and self._presence_override and self._presence_override["until"]:
                 next_departure = self._presence_override["until"]
             elif current_window is None:
                 next_departure = now_local
-            next_arrival = next_window.start if next_window else None
+            
+            # S'assurer que next_departure est dans le futur
+            if next_departure and next_departure <= now_local:
+                # Si la fin de la garde est dans le passé, utiliser la prochaine fenêtre
+                next_departure = next_window.end if next_window else None
+                next_arrival = next_window.start if next_window else None
+            else:
+                # next_arrival est la prochaine garde APRÈS le départ actuel
+                if next_departure and next_departure > now_local:
+                    # Chercher la fenêtre qui commence après next_departure
+                    next_arrival = next((w.start for w in windows if w.start > next_departure), None)
+                else:
+                    # Sinon, utiliser simplement la prochaine fenêtre
+                    next_arrival = next_window.start if next_window else None
         else:
             # Quand l'enfant n'est pas présent, next_arrival est toujours la prochaine fenêtre de garde future
             # et next_departure est la fin de cette même prochaine fenêtre
