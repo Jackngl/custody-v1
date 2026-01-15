@@ -103,13 +103,13 @@ L'application supporte **6 types de garde** pour les weekends et semaines :
 ### Champs optionnels
 
 #### 5. **Jour de départ du cycle** (`start_day`)
-- **Description** : Jour de la semaine qui marque le début du cycle de garde
+- **Description** : Jour de la semaine qui marque le début du cycle de garde (semaines/cycles uniquement)
 - **Valeurs** : `"monday"`, `"tuesday"`, `"wednesday"`, `"thursday"`, `"friday"`, `"saturday"`, `"sunday"`
 - **Utilisation** : 
   - ✅ **Utilisé pour** : `alternate_week`, `two_two_three`, `two_two_five_five`, `custom`
   - ❌ **Non utilisé pour** : `alternate_weekend`, `alternate_week_parity` (basé sur la parité ISO via `reference_year`)
-- **Défaut** : `"monday"` (ou `"friday"` pour les weekends)
-- **Note** : Pour les weekends pairs/impairs, ce champ est masqué car non applicable
+- **Défaut** : `"monday"`
+- **Note** : Pour les week-ends/semaines parité ISO, le cycle est **toujours ancré au lundi** (champ masqué dans l'interface)
 
 #### 6. **Niveau scolaire** (`school_level`)
 - **Description** : Niveau scolaire de l'enfant (affecte les horaires de sortie)

@@ -13,11 +13,11 @@
       },
       "custody": {
         "title": "Regular custody (weekends/weeks)",
-        "description": "Configure regular custody outside school holidays. Public holidays (Friday/Monday) automatically extend weekends.",
+        "description": "Configure regular custody outside school holidays. Public holidays (Friday/Monday) automatically extend weekends. The cycle start day does not apply to ISO parity weekends/weeks.",
         "data": {
           "custody_type": "Custody type",
           "reference_year": "Reference year for regular custody (even/odd)",
-          "start_day": "Cycle start day",
+          "start_day": "Cycle start day (weeks only)",
           "arrival_time": "Arrival time",
           "departure_time": "Departure time",
           "location": "Exchange location"

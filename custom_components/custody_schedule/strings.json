@@ -13,11 +13,11 @@
       },
       "custody": {
         "title": "Garde classique (weekends/semaines)",
-        "description": "Configurer la garde normale hors vacances scolaires. Les jours fériés (vendredi/lundi) étendent automatiquement les weekends.",
+        "description": "Configurer la garde normale hors vacances scolaires. Les jours fériés (vendredi/lundi) étendent automatiquement les weekends. Le jour de départ du cycle ne s'applique pas aux week-ends/semaines parité ISO.",
         "data": {
           "custody_type": "Type de garde",
           "reference_year": "Année de référence pour la garde classique (paire/impaire)",
-          "start_day": "Jour de départ du cycle",
+          "start_day": "Jour de départ du cycle (semaines uniquement)",
           "arrival_time": "Heure d'arrivée",
           "departure_time": "Heure de départ",
           "location": "Lieu d'échange"
@@ -61,11 +61,11 @@
       },
       "custody": {
         "title": "Garde classique (weekends/semaines)",
-        "description": "Modifier la garde normale hors vacances scolaires. Les jours fériés étendent automatiquement les weekends.",
+        "description": "Modifier la garde normale hors vacances scolaires. Les jours fériés étendent automatiquement les weekends. Le jour de départ du cycle ne s'applique pas aux week-ends/semaines parité ISO.",
         "data": {
           "custody_type": "Type de garde",
           "reference_year": "Année de référence pour la garde classique (paire/impaire)",
-          "start_day": "Jour de départ du cycle"
+          "start_day": "Jour de départ du cycle (semaines uniquement)"
         }
       },
       "schedule": {
