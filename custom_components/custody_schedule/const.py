@@ -14,6 +14,7 @@ PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.SENSOR,
     Platform.CALENDAR,
+    Platform.DEVICE_TRACKER,
 ]
 UPDATE_INTERVAL = timedelta(minutes=15)
 # API du calendrier scolaire français (data.education.gouv.fr)
