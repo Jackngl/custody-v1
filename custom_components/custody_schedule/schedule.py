@@ -419,6 +419,11 @@ class CustodyScheduleManager:
             reference_year = self._config.get(CONF_REFERENCE_YEAR, "even")
             target_parity = 0 if reference_year == "even" else 1  # 0 = even, 1 = odd
             
+            # Ajuster le pointer pour commencer avant ou à la date actuelle
+            # Si le pointer est trop loin dans le passé, avancer jusqu'à une semaine proche de maintenant
+            while pointer < now - timedelta(days=14):
+                pointer += timedelta(days=14)  # Sauter 2 semaines (alternance)
+            
             while pointer < horizon:
                 iso_week = pointer.isocalendar().week
                 week_parity = iso_week % 2  # 0 = even, 1 = odd
