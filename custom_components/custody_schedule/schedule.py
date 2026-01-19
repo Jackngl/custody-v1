@@ -64,6 +64,7 @@ from .const import (
     CONF_AUGUST_RULE,
     CONF_CUSTOM_RULES,
     CONF_DEPARTURE_TIME,
+    CONF_EXCEPTIONS_RECURRING,
     CONF_JULY_RULE,
     CONF_LOCATION,
     CONF_NOTES,
@@ -179,6 +180,7 @@ class CustodyScheduleManager:
         now_local = now if now.tzinfo else dt_util.as_local(now)
         windows = await self._build_windows(now_local)
         windows.extend(self._manual_windows)
+        windows.extend(self._build_recurring_windows(now_local))
         windows.sort(key=lambda window: window.start)
 
         # Filtrer STRICTEMENT les fenêtres qui se terminent dans le passé
@@ -339,6 +341,57 @@ class CustodyScheduleManager:
         merged = vacation_display_windows + custom_windows + filtered_pattern_windows
         # Filtrer les fenêtres qui se terminent dans le passé (avec marge d'1 jour pour éviter les problèmes de timing)
         return [window for window in merged if window.end > now - timedelta(days=1)]
+
+    def _build_recurring_windows(self, now: datetime) -> list[CustodyWindow]:
+        """Generate recurring exception windows."""
+        exceptions = self._config.get(CONF_EXCEPTIONS_RECURRING, [])
+        if not isinstance(exceptions, list) or not exceptions:
+            return []
+
+        windows: list[CustodyWindow] = []
+        horizon_end = now.date() + timedelta(days=365)
+        range_start = now.date() - timedelta(days=1)
+
+        for item in exceptions:
+            try:
+                weekday = int(item.get("weekday"))
+            except (TypeError, ValueError):
+                continue
+            if weekday < 0 or weekday > 6:
+                continue
+
+            start_time = self._parse_time(item.get("start_time"))
+            end_time = self._parse_time(item.get("end_time"))
+            if not start_time or not end_time or end_time <= start_time:
+                continue
+
+            start_date = dt_util.parse_date(item.get("start_date")) if item.get("start_date") else None
+            end_date = dt_util.parse_date(item.get("end_date")) if item.get("end_date") else None
+
+            current = max(range_start, start_date) if start_date else range_start
+            range_end = min(horizon_end, end_date) if end_date else horizon_end
+            if current > range_end:
+                continue
+
+            days_ahead = (weekday - current.weekday()) % 7
+            occ_date = current + timedelta(days=days_ahead)
+            label = item.get("label") or "Exception récurrente"
+
+            while occ_date <= range_end:
+                start_dt = datetime.combine(occ_date, start_time, tzinfo=self._tz)
+                end_dt = datetime.combine(occ_date, end_time, tzinfo=self._tz)
+                if end_dt > start_dt:
+                    windows.append(
+                        CustodyWindow(
+                            start=start_dt,
+                            end=end_dt,
+                            label=label,
+                            source="exception_recurring",
+                        )
+                    )
+                occ_date += timedelta(days=7)
+
+        return windows
     
     def _filter_windows_by_vacations(
         self, pattern_windows: list[CustodyWindow], vacation_windows: list[CustodyWindow]

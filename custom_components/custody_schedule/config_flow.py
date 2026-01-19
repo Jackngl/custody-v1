@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any
 import uuid
@@ -28,6 +28,7 @@ from .const import (
     CONF_DEPARTURE_TIME,
     CONF_EXCEPTIONS,
     CONF_EXCEPTIONS_LIST,
+    CONF_EXCEPTIONS_RECURRING,
     CONF_HOLIDAY_API_URL,
     CONF_ICON,
     CONF_JULY_RULE,
@@ -286,8 +287,36 @@ def _normalize_datetime(value: Any) -> datetime | None:
     return None
 
 
+def _normalize_date(value: Any) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if hasattr(value, "year") and hasattr(value, "month") and hasattr(value, "day"):
+        try:
+            return value
+        except TypeError:
+            pass
+    if isinstance(value, str):
+        return dt_util.parse_date(value)
+    return None
+
+
+def _normalize_time(value: Any) -> time | None:
+    if value is None:
+        return None
+    if hasattr(value, "hour") and hasattr(value, "minute"):
+        return value
+    if isinstance(value, str):
+        return dt_util.parse_time(value)
+    return None
+
+
 def _get_exceptions(data: dict[str, Any]) -> list[dict[str, Any]]:
     exceptions = data.get(CONF_EXCEPTIONS_LIST, [])
+    return list(exceptions) if isinstance(exceptions, list) else []
+
+
+def _get_recurring_exceptions(data: dict[str, Any]) -> list[dict[str, Any]]:
+    exceptions = data.get(CONF_EXCEPTIONS_RECURRING, [])
     return list(exceptions) if isinstance(exceptions, list) else []
 
 
@@ -298,6 +327,16 @@ def _format_exception_label(item: dict[str, Any]) -> str:
     if start and end:
         return f"{label} — {start.strftime('%Y-%m-%d %H:%M')} → {end.strftime('%Y-%m-%d %H:%M')}"
     return str(label)
+
+
+def _format_recurring_label(item: dict[str, Any]) -> str:
+    label = item.get("label") or "Exception récurrente"
+    weekday = item.get("weekday")
+    weekdays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+    day_label = weekdays[weekday] if isinstance(weekday, int) and 0 <= weekday <= 6 else "?"
+    start_time = item.get("start_time") or "?"
+    end_time = item.get("end_time") or "?"
+    return f"{label} — {day_label} {start_time} → {end_time}"
 
 
 class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -647,6 +686,9 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
                 "exceptions_add": "Ajouter",
                 "exceptions_edit": "Modifier",
                 "exceptions_delete": "Supprimer",
+                "exceptions_recurring_add": "Ajouter récurrente",
+                "exceptions_recurring_edit": "Modifier récurrente",
+                "exceptions_recurring_delete": "Supprimer récurrente",
                 "init": "Retour",
             },
         )
@@ -776,6 +818,182 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
             }
         )
         return self.async_show_form(step_id="exceptions_delete", data_schema=schema)
+
+    async def async_step_exceptions_recurring_add(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Add a recurring exception."""
+        errors: dict[str, str] = {}
+        if user_input:
+            start_time = _normalize_time(user_input.get("start_time"))
+            end_time = _normalize_time(user_input.get("end_time"))
+            if not start_time or not end_time or end_time <= start_time:
+                errors["base"] = "end_before_start"
+            if not errors:
+                label = str(user_input.get("label") or "Exception récurrente").strip() or "Exception récurrente"
+                new_item = {
+                    "id": uuid.uuid4().hex,
+                    "label": label,
+                    "weekday": int(user_input.get("weekday")),
+                    "start_time": start_time.strftime("%H:%M"),
+                    "end_time": end_time.strftime("%H:%M"),
+                    "start_date": user_input.get("start_date") or None,
+                    "end_date": user_input.get("end_date") or None,
+                }
+                exceptions = _get_recurring_exceptions(self._data)
+                exceptions.append(new_item)
+                self._data[CONF_EXCEPTIONS_RECURRING] = exceptions
+                return self.async_create_entry(title="", data=self._data)
+
+        schema = vol.Schema(
+            {
+                vol.Optional("label"): cv.string,
+                vol.Required("weekday"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": 0, "label": "Lundi"},
+                            {"value": 1, "label": "Mardi"},
+                            {"value": 2, "label": "Mercredi"},
+                            {"value": 3, "label": "Jeudi"},
+                            {"value": 4, "label": "Vendredi"},
+                            {"value": 5, "label": "Samedi"},
+                            {"value": 6, "label": "Dimanche"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required("start_time"): selector.TimeSelector(),
+                vol.Required("end_time"): selector.TimeSelector(),
+                vol.Optional("start_date"): selector.DateSelector(),
+                vol.Optional("end_date"): selector.DateSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="exceptions_recurring_add", data_schema=schema, errors=errors
+        )
+
+    async def async_step_exceptions_recurring_edit(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Select a recurring exception to edit."""
+        exceptions = _get_recurring_exceptions(self._data)
+        if not exceptions:
+            return self.async_show_form(
+                step_id="exceptions_recurring_edit",
+                data_schema=vol.Schema({}),
+                errors={"base": "no_exceptions"},
+            )
+
+        if user_input:
+            self._selected_exception_id = user_input.get("exception_id")
+            return await self.async_step_exceptions_recurring_edit_form()
+
+        schema = vol.Schema(
+            {
+                vol.Required("exception_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {
+                                "value": item.get("id", ""),
+                                "label": _format_recurring_label(item),
+                            }
+                            for item in exceptions
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="exceptions_recurring_edit", data_schema=schema)
+
+    async def async_step_exceptions_recurring_edit_form(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Edit the selected recurring exception."""
+        errors: dict[str, str] = {}
+        exceptions = _get_recurring_exceptions(self._data)
+        selected = next((item for item in exceptions if item.get("id") == self._selected_exception_id), None)
+        if not selected:
+            return await self.async_step_exceptions_recurring_edit()
+
+        if user_input:
+            start_time = _normalize_time(user_input.get("start_time"))
+            end_time = _normalize_time(user_input.get("end_time"))
+            if not start_time or not end_time or end_time <= start_time:
+                errors["base"] = "end_before_start"
+            if not errors:
+                selected["label"] = str(user_input.get("label") or selected.get("label") or "Exception").strip()
+                selected["weekday"] = int(user_input.get("weekday"))
+                selected["start_time"] = start_time.strftime("%H:%M")
+                selected["end_time"] = end_time.strftime("%H:%M")
+                selected["start_date"] = user_input.get("start_date") or None
+                selected["end_date"] = user_input.get("end_date") or None
+                self._data[CONF_EXCEPTIONS_RECURRING] = exceptions
+                return self.async_create_entry(title="", data=self._data)
+
+        schema = vol.Schema(
+            {
+                vol.Optional("label", default=selected.get("label", "")): cv.string,
+                vol.Required("weekday", default=selected.get("weekday", 0)): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": 0, "label": "Lundi"},
+                            {"value": 1, "label": "Mardi"},
+                            {"value": 2, "label": "Mercredi"},
+                            {"value": 3, "label": "Jeudi"},
+                            {"value": 4, "label": "Vendredi"},
+                            {"value": 5, "label": "Samedi"},
+                            {"value": 6, "label": "Dimanche"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required("start_time", default=_normalize_time(selected.get("start_time"))): selector.TimeSelector(),
+                vol.Required("end_time", default=_normalize_time(selected.get("end_time"))): selector.TimeSelector(),
+                vol.Optional("start_date", default=_normalize_date(selected.get("start_date"))): selector.DateSelector(),
+                vol.Optional("end_date", default=_normalize_date(selected.get("end_date"))): selector.DateSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="exceptions_recurring_edit_form", data_schema=schema, errors=errors
+        )
+
+    async def async_step_exceptions_recurring_delete(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Delete a recurring exception."""
+        exceptions = _get_recurring_exceptions(self._data)
+        if not exceptions:
+            return self.async_show_form(
+                step_id="exceptions_recurring_delete",
+                data_schema=vol.Schema({}),
+                errors={"base": "no_exceptions"},
+            )
+
+        if user_input:
+            exception_id = user_input.get("exception_id")
+            self._data[CONF_EXCEPTIONS_RECURRING] = [
+                item for item in exceptions if item.get("id") != exception_id
+            ]
+            return self.async_create_entry(title="", data=self._data)
+
+        schema = vol.Schema(
+            {
+                vol.Required("exception_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {
+                                "value": item.get("id", ""),
+                                "label": _format_recurring_label(item),
+                            }
+                            for item in exceptions
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="exceptions_recurring_delete", data_schema=schema)
 
     async def async_step_vacations(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Modify vacances scolaires (school zone and vacation rules)."""

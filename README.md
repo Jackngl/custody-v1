@@ -135,6 +135,13 @@ Vous pouvez ajouter des exceptions (jours supplémentaires, garde en semaine, et
 2. Sélectionner **Exceptions**
 3. Ajouter / Modifier / Supprimer une exception (début + fin + titre)
 
+#### Exceptions récurrentes
+Dans le même écran **Exceptions**, vous pouvez aussi gérer des exceptions récurrentes (hebdomadaires) :
+- Jour de la semaine + heure début/fin
+- Optionnel : date de début / date de fin
+
+Les exceptions (ponctuelles et récurrentes) apparaissent dans le calendrier de l'intégration.
+
 ## 🔧 Services disponibles
 
 ### `custody_schedule.set_manual_dates`
@@ -207,6 +214,40 @@ data:
 ```
 
 Les résultats sont disponibles dans les logs Home Assistant.
+
+### `custody_schedule.export_exceptions`
+
+Exporte les exceptions (ponctuelles + récurrentes) vers un fichier JSON dans `/config/www`.
+
+**Paramètres :**
+- `entry_id` (requis) : ID de l'intégration
+- `filename` (optionnel) : Nom du fichier (ex: `custody_exceptions.json`)
+
+**Exemple :**
+```yaml
+service: custody_schedule.export_exceptions
+data:
+  entry_id: "1234567890abcdef1234567890abcdef"
+  filename: "custody_exceptions.json"
+```
+
+### `custody_schedule.import_exceptions`
+
+Importe des exceptions depuis un fichier JSON ou un payload direct.
+
+**Paramètres :**
+- `entry_id` (requis) : ID de l'intégration
+- `filename` (optionnel) : Nom du fichier dans `/config/www`
+- `exceptions` (optionnel) : Liste d'exceptions ponctuelles
+- `recurring` (optionnel) : Liste d'exceptions récurrentes
+
+**Exemple :**
+```yaml
+service: custody_schedule.import_exceptions
+data:
+  entry_id: "1234567890abcdef1234567890abcdef"
+  filename: "custody_exceptions.json"
+```
 
 ## 📡 Événements Home Assistant
 
