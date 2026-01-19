@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+import json
+from pathlib import Path
 import asyncio
 from typing import Any
 
@@ -24,6 +26,7 @@ from .const import (
     CONF_CALENDAR_SYNC_DAYS,
     CONF_CALENDAR_TARGET,
     CONF_EXCEPTIONS_LIST,
+    CONF_EXCEPTIONS_RECURRING,
     CONF_HOLIDAY_API_URL,
     CONF_LOCATION,
     CONF_REFERENCE_YEAR,
@@ -37,6 +40,8 @@ from .const import (
     SERVICE_REFRESH_SCHEDULE,
     SERVICE_SET_MANUAL_DATES,
     SERVICE_TEST_HOLIDAY_API,
+    SERVICE_EXPORT_EXCEPTIONS,
+    SERVICE_IMPORT_EXCEPTIONS,
     UPDATE_INTERVAL,
 )
 from .schedule import CustodyComputation, CustodyScheduleManager
@@ -388,6 +393,12 @@ def _register_services(hass: HomeAssistant) -> None:
             raise HomeAssistantError(f"No custody schedule found for entry_id {entry_id}")
         return entry_data["coordinator"], entry_data["manager"]
 
+    def _get_entry(entry_id: str) -> ConfigEntry:
+        entry = hass.config_entries.async_get_entry(entry_id)
+        if not entry:
+            raise HomeAssistantError(f"No custody schedule found for entry_id {entry_id}")
+        return entry
+
     async def _async_handle_manual_dates(call: ServiceCall) -> None:
         coordinator, manager = _get_manager(call.data["entry_id"])
         manager.set_manual_windows(call.data["dates"])
@@ -403,6 +414,75 @@ def _register_services(hass: HomeAssistant) -> None:
     async def _async_handle_refresh(call: ServiceCall) -> None:
         coordinator, _ = _get_manager(call.data["entry_id"])
         await coordinator.async_request_refresh()
+
+    async def _async_handle_export_exceptions(call: ServiceCall) -> None:
+        entry_id = call.data["entry_id"]
+        entry = _get_entry(entry_id)
+        config = {**entry.data, **(entry.options or {})}
+        payload = {
+            "exceptions": config.get(CONF_EXCEPTIONS_LIST, []),
+            "recurring": config.get(CONF_EXCEPTIONS_RECURRING, []),
+        }
+
+        filename = call.data.get("filename")
+        www_dir = Path(hass.config.path("www")).resolve(strict=False)
+        if filename:
+            filename = str(filename).strip()
+            if filename.startswith("/config/www/"):
+                target = Path(filename)
+            elif filename.startswith("www/"):
+                target = www_dir / filename[4:]
+            else:
+                target = www_dir / filename
+        else:
+            target = www_dir / f"custody_exceptions_{entry_id}.json"
+        target = target.resolve(strict=False)
+        if www_dir not in target.parents and target != www_dir:
+            raise HomeAssistantError("Filename must be under /config/www")
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        LOGGER.info("Exceptions exported to %s", target)
+
+    async def _async_handle_import_exceptions(call: ServiceCall) -> None:
+        entry_id = call.data["entry_id"]
+        entry = _get_entry(entry_id)
+        payload = None
+
+        if "exceptions" in call.data or "recurring" in call.data:
+            payload = {
+                "exceptions": call.data.get("exceptions") or [],
+                "recurring": call.data.get("recurring") or [],
+            }
+        elif filename := call.data.get("filename"):
+            www_dir = Path(hass.config.path("www")).resolve(strict=False)
+            filename = str(filename).strip()
+            if filename.startswith("/config/www/"):
+                target = Path(filename)
+            elif filename.startswith("www/"):
+                target = www_dir / filename[4:]
+            else:
+                target = www_dir / filename
+            target = target.resolve(strict=False)
+            if www_dir not in target.parents and target != www_dir:
+                raise HomeAssistantError("Filename must be under /config/www")
+            if not target.exists():
+                raise HomeAssistantError("File not found")
+            payload = json.loads(target.read_text(encoding="utf-8"))
+
+        if not isinstance(payload, dict):
+            raise HomeAssistantError("Invalid payload")
+
+        exceptions = payload.get("exceptions", [])
+        recurring = payload.get("recurring", [])
+        if not isinstance(exceptions, list) or not isinstance(recurring, list):
+            raise HomeAssistantError("Invalid exceptions format")
+
+        options = {**(entry.options or {})}
+        options[CONF_EXCEPTIONS_LIST] = exceptions
+        options[CONF_EXCEPTIONS_RECURRING] = recurring
+        hass.config_entries.async_update_entry(entry, options=options)
+        await hass.config_entries.async_reload(entry.entry_id)
 
     hass.services.async_register(
         DOMAIN,
@@ -445,6 +525,32 @@ def _register_services(hass: HomeAssistant) -> None:
         SERVICE_REFRESH_SCHEDULE,
         _async_handle_refresh,
         schema=vol.Schema({vol.Required("entry_id"): cv.string}),
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EXPORT_EXCEPTIONS,
+        _async_handle_export_exceptions,
+        schema=vol.Schema(
+            {
+                vol.Required("entry_id"): cv.string,
+                vol.Optional("filename"): cv.string,
+            }
+        ),
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_IMPORT_EXCEPTIONS,
+        _async_handle_import_exceptions,
+        schema=vol.Schema(
+            {
+                vol.Required("entry_id"): cv.string,
+                vol.Optional("filename"): cv.string,
+                vol.Optional("exceptions"): list,
+                vol.Optional("recurring"): list,
+            }
+        ),
     )
 
     async def _async_handle_test_api(call: ServiceCall) -> None:

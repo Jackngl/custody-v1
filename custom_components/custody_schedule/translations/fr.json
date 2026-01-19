@@ -80,6 +80,44 @@
         "data": {
           "exception_id": "Exception"
         }
+      },
+      "exceptions_recurring_add": {
+        "title": "Ajouter une exception récurrente",
+        "description": "Ajouter une exception qui se répète chaque semaine.",
+        "data": {
+          "label": "Titre",
+          "weekday": "Jour de la semaine",
+          "start_time": "Heure de début",
+          "end_time": "Heure de fin",
+          "start_date": "Date de début (optionnel)",
+          "end_date": "Date de fin (optionnel)"
+        }
+      },
+      "exceptions_recurring_edit": {
+        "title": "Modifier une exception récurrente",
+        "description": "Sélectionnez une exception récurrente à modifier.",
+        "data": {
+          "exception_id": "Exception récurrente"
+        }
+      },
+      "exceptions_recurring_edit_form": {
+        "title": "Modifier une exception récurrente",
+        "description": "Mettre à jour la récurrence sélectionnée.",
+        "data": {
+          "label": "Titre",
+          "weekday": "Jour de la semaine",
+          "start_time": "Heure de début",
+          "end_time": "Heure de fin",
+          "start_date": "Date de début (optionnel)",
+          "end_date": "Date de fin (optionnel)"
+        }
+      },
+      "exceptions_recurring_delete": {
+        "title": "Supprimer une exception récurrente",
+        "description": "Sélectionnez une exception récurrente à supprimer.",
+        "data": {
+          "exception_id": "Exception récurrente"
+        }
       }
     }
   },

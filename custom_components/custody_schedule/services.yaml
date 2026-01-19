@@ -48,3 +48,29 @@ test_holiday_api:
     year:
       description: Année scolaire au format "2024-2025" (optionnel, utilise l'année actuelle si non spécifié).
       example: "2024-2025"
+
+export_exceptions:
+  name: Exporter les exceptions
+  description: Exporte les exceptions (ponctuelles + récurrentes) vers un fichier JSON.
+  fields:
+    entry_id:
+      description: ID de l'intégration (visible dans les paramètres).
+      example: 1234567890abcdef1234567890abcdef
+    filename:
+      description: Nom du fichier dans /config/www (optionnel).
+      example: "custody_exceptions.json"
+
+import_exceptions:
+  name: Importer des exceptions
+  description: Importe des exceptions depuis un fichier JSON ou un payload.
+  fields:
+    entry_id:
+      description: ID de l'intégration (visible dans les paramètres).
+      example: 1234567890abcdef1234567890abcdef
+    filename:
+      description: Nom du fichier dans /config/www (optionnel).
+      example: "custody_exceptions.json"
+    exceptions:
+      description: Liste d'exceptions ponctuelles (optionnel).
+    recurring:
+      description: Liste d'exceptions récurrentes (optionnel).
