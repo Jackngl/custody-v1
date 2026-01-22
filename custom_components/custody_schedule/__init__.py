@@ -209,7 +209,7 @@ class CustodyScheduleCoordinator(DataUpdateCoordinator[CustodyComputation]):
                 return
             self._last_calendar_sync = now
             try:
-                if not hass.services.has_service("calendar", "get_events"):
+                if not self.hass.services.has_service("calendar", "get_events"):
                     LOGGER.warning("Calendar sync skipped: calendar.get_events not available.")
                     return
                 LOGGER.debug("Calendar sync starting for %s", target)
