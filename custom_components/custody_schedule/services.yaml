@@ -91,3 +91,14 @@ export_planning_pdf:
     filename:
       description: Nom du fichier PDF dans /config/www (optionnel).
       example: "custody_planning.pdf"
+
+purge_calendar_events:
+  name: Purger les événements Google
+  description: Supprime tous les événements créés par Custody dans le calendrier cible.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: Identifiant de l'entrée d'intégration
+      required: true
+      selector:
+        text:

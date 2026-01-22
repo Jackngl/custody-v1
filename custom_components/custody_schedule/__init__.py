@@ -636,6 +636,79 @@ def _register_services(hass: HomeAssistant) -> None:
         ),
     )
 
+    async def _async_handle_purge_calendar(call: ServiceCall) -> None:
+        entry_id = call.data["entry_id"]
+        entry = _get_entry(entry_id)
+        config = {**entry.data, **(entry.options or {})}
+        target = _normalize_calendar_target(config.get(CONF_CALENDAR_TARGET))
+        if not target:
+            raise HomeAssistantError("No target calendar configured")
+        if not hass.services.has_service("calendar", "get_events"):
+            raise HomeAssistantError("calendar.get_events not available")
+
+        now = dt_util.now()
+        days = config.get(CONF_CALENDAR_SYNC_DAYS, 120)
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            days = 120
+        days = max(7, min(365, days))
+        start_range = _ensure_local_tz(now - timedelta(days=1))
+        end_range = _ensure_local_tz(now + timedelta(days=days))
+
+        response = await hass.services.async_call(
+            "calendar",
+            "get_events",
+            {
+                "entity_id": target,
+                "start_date_time": start_range.isoformat(),
+                "end_date_time": end_range.isoformat(),
+            },
+            blocking=True,
+            return_response=True,
+        )
+
+        events: list[Any] = []
+        if isinstance(response, list):
+            events = response
+        elif isinstance(response, dict):
+            if "events" in response:
+                events = response.get("events") or []
+            elif target in response:
+                target_payload = response.get(target)
+                if isinstance(target_payload, dict) and "events" in target_payload:
+                    events = target_payload.get("events") or []
+                elif isinstance(target_payload, list):
+                    events = target_payload
+
+        marker = _calendar_marker(entry_id)
+        deleted = 0
+        if hass.services.has_service("calendar", "delete_event"):
+            for event in events:
+                if not isinstance(event, dict):
+                    continue
+                if marker and not _matches_marker(event, marker):
+                    continue
+                event_id = event.get("uid") or event.get("id") or event.get("event_id")
+                if not event_id:
+                    continue
+                await hass.services.async_call(
+                    "calendar",
+                    "delete_event",
+                    {"entity_id": target, "event_id": event_id},
+                    blocking=True,
+                )
+                deleted += 1
+
+        LOGGER.info("Purged %d custody events from %s", deleted, target)
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PURGE_CALENDAR,
+        _async_handle_purge_calendar,
+        schema=vol.Schema({vol.Required("entry_id"): cv.string}),
+    )
+
     async def _async_handle_test_api(call: ServiceCall) -> None:
         """Test the holiday API connection."""
         entry_id = call.data.get("entry_id")
