@@ -59,6 +59,8 @@ CONF_EXCEPTIONS_RECURRING = "exceptions_recurring"
 CONF_CUSTOM_RULES = "custom_rules"
 CONF_HOLIDAY_API_URL = "holiday_api_url"
 
+SERVICE_EXPORT_PLANNING_PDF = "export_planning_pdf"
+
 REFERENCE_YEARS = ["even", "odd"]
 VACATION_SPLIT_MODES = ["odd_first", "odd_second"]
 

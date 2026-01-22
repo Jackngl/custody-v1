@@ -325,6 +325,16 @@ entities:
 title: Planning de garde - {Enfant}
 ```
 
+### Exemple 3 bis : Carte calendrier (vue mensuelle)
+
+```yaml
+type: calendar
+entities:
+  - entity: calendar.{enfant}_calendar
+title: Planning de garde - {Enfant}
+initial_view: dayGridMonth
+```
+
 ### Exemple 4 : Carte personnalisée avec badges
 
 ```yaml

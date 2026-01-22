@@ -17,6 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
+from homeassistant.components import persistent_notification
 
 from .const import (
     CONF_CHILD_NAME,
@@ -29,6 +30,7 @@ from .const import (
     CONF_EXCEPTIONS_RECURRING,
     CONF_HOLIDAY_API_URL,
     CONF_LOCATION,
+    CONF_NOTIFICATIONS,
     CONF_REFERENCE_YEAR,
     CONF_REFERENCE_YEAR_CUSTODY,
     CONF_REFERENCE_YEAR_VACATIONS,
@@ -42,6 +44,7 @@ from .const import (
     SERVICE_TEST_HOLIDAY_API,
     SERVICE_EXPORT_EXCEPTIONS,
     SERVICE_IMPORT_EXCEPTIONS,
+    SERVICE_EXPORT_PLANNING_PDF,
     UPDATE_INTERVAL,
 )
 from .schedule import CustodyComputation, CustodyScheduleManager
@@ -141,6 +144,8 @@ class CustodyScheduleCoordinator(DataUpdateCoordinator[CustodyComputation]):
 
         last = self._last_state
         child_label = self.entry.data.get(CONF_CHILD_NAME_DISPLAY, self.entry.data.get(CONF_CHILD_NAME))
+        config = {**self.entry.data, **(self.entry.options or {})}
+        notifications_enabled = bool(config.get(CONF_NOTIFICATIONS))
         if last.is_present != new_state.is_present:
             event = "custody_arrival" if new_state.is_present else "custody_departure"
             self.hass.bus.async_fire(
@@ -153,6 +158,22 @@ class CustodyScheduleCoordinator(DataUpdateCoordinator[CustodyComputation]):
                 },
             )
 
+            if notifications_enabled:
+                next_dt = new_state.next_departure if new_state.is_present else new_state.next_arrival
+                next_label = "depart" if new_state.is_present else "arrivee"
+                formatted = (
+                    dt_util.as_local(next_dt).strftime("%d/%m/%Y %H:%M") if next_dt else "inconnu"
+                )
+                title = f"{child_label} - Arrivee" if new_state.is_present else f"{child_label} - Depart"
+                message = f"{child_label} est arrive" if new_state.is_present else f"{child_label} est parti"
+                message = f"{message}. Prochain {next_label}: {formatted}"
+                persistent_notification.async_create(
+                    self.hass,
+                    message,
+                    title,
+                    f"{DOMAIN}_{self.entry.entry_id}_{next_label}",
+                )
+
         if last.current_period != new_state.current_period and new_state.current_period == "vacation":
             self.hass.bus.async_fire(
                 "custody_vacation_start",
@@ -161,6 +182,17 @@ class CustodyScheduleCoordinator(DataUpdateCoordinator[CustodyComputation]):
                     "holiday": new_state.vacation_name,
                 },
             )
+
+            if notifications_enabled:
+                title = f"{child_label} - Vacances"
+                holiday = new_state.vacation_name or "Vacances scolaires"
+                message = f"Debut des vacances: {holiday}"
+                persistent_notification.async_create(
+                    self.hass,
+                    message,
+                    title,
+                    f"{DOMAIN}_{self.entry.entry_id}_vacation_start",
+                )
         elif last.current_period != new_state.current_period and new_state.current_period == "school":
             self.hass.bus.async_fire(
                 "custody_vacation_end",
@@ -169,6 +201,17 @@ class CustodyScheduleCoordinator(DataUpdateCoordinator[CustodyComputation]):
                     "holiday": last.vacation_name,
                 },
             )
+
+            if notifications_enabled:
+                title = f"{child_label} - Fin vacances"
+                holiday = last.vacation_name or "Vacances scolaires"
+                message = f"Fin des vacances: {holiday}"
+                persistent_notification.async_create(
+                    self.hass,
+                    message,
+                    title,
+                    f"{DOMAIN}_{self.entry.entry_id}_vacation_end",
+                )
 
     async def _maybe_sync_calendar(self, state: CustodyComputation) -> None:
         """Sync custody windows to an external calendar if enabled."""
@@ -484,6 +527,67 @@ def _register_services(hass: HomeAssistant) -> None:
         hass.config_entries.async_update_entry(entry, options=options)
         await hass.config_entries.async_reload(entry.entry_id)
 
+    async def _async_handle_export_planning_pdf(call: ServiceCall) -> None:
+        entry_id = call.data["entry_id"]
+        entry = _get_entry(entry_id)
+        coordinator, manager = _get_manager(entry_id)
+        child_label = entry.data.get(CONF_CHILD_NAME_DISPLAY, entry.data.get(CONF_CHILD_NAME))
+        start = call.data.get("start") or dt_util.now()
+        end = call.data.get("end") or (start + timedelta(days=120))
+        if start.tzinfo is None:
+            start = dt_util.as_local(start)
+        if end.tzinfo is None:
+            end = dt_util.as_local(end)
+        if end <= start:
+            raise HomeAssistantError("End date must be after start date")
+
+        state = coordinator.data or await manager.async_calculate(dt_util.now())
+        windows = [w for w in state.windows if w.end > start and w.start < end]
+        windows.sort(key=lambda w: w.start)
+
+        from fpdf import FPDF
+
+        def _pdf_safe(value: str) -> str:
+            return value.encode("latin-1", "replace").decode("latin-1")
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(True, margin=12)
+        pdf.add_page()
+        pdf.set_font("Helvetica", size=14)
+        pdf.cell(0, 10, _pdf_safe(f"Planning de garde - {child_label}"), ln=1)
+        pdf.set_font("Helvetica", size=10)
+        period_line = f"Periode: {start:%d/%m/%Y %H:%M} - {end:%d/%m/%Y %H:%M}"
+        pdf.cell(0, 6, _pdf_safe(period_line), ln=1)
+        pdf.ln(2)
+
+        if not windows:
+            pdf.cell(0, 6, _pdf_safe("Aucun evenement sur la periode."), ln=1)
+        else:
+            for window in windows:
+                label = window.label or "Garde"
+                line = f"{window.start:%d/%m/%Y %H:%M} -> {window.end:%d/%m/%Y %H:%M} | {label}"
+                pdf.multi_cell(0, 5, _pdf_safe(line))
+
+        filename = call.data.get("filename")
+        www_dir = Path(hass.config.path("www")).resolve(strict=False)
+        if filename:
+            filename = str(filename).strip()
+            if filename.startswith("/config/www/"):
+                target = Path(filename)
+            elif filename.startswith("www/"):
+                target = www_dir / filename[4:]
+            else:
+                target = www_dir / filename
+        else:
+            target = www_dir / f"custody_planning_{entry_id}.pdf"
+        target = target.resolve(strict=False)
+        if www_dir not in target.parents and target != www_dir:
+            raise HomeAssistantError("Filename must be under /config/www")
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        pdf.output(str(target))
+        LOGGER.info("Planning PDF exported to %s", target)
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_MANUAL_DATES,
@@ -549,6 +653,20 @@ def _register_services(hass: HomeAssistant) -> None:
                 vol.Optional("filename"): cv.string,
                 vol.Optional("exceptions"): list,
                 vol.Optional("recurring"): list,
+            }
+        ),
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EXPORT_PLANNING_PDF,
+        _async_handle_export_planning_pdf,
+        schema=vol.Schema(
+            {
+                vol.Required("entry_id"): cv.string,
+                vol.Optional("start"): cv.datetime,
+                vol.Optional("end"): cv.datetime,
+                vol.Optional("filename"): cv.string,
             }
         ),
     )

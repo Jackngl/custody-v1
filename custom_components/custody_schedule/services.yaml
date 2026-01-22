@@ -74,3 +74,20 @@ import_exceptions:
       description: Liste d'exceptions ponctuelles (optionnel).
     recurring:
       description: Liste d'exceptions récurrentes (optionnel).
+
+export_planning_pdf:
+  name: Exporter le planning en PDF
+  description: Exporte le planning (périodes de garde) dans un fichier PDF.
+  fields:
+    entry_id:
+      description: ID de l'intégration (visible dans les paramètres).
+      example: 1234567890abcdef1234567890abcdef
+    start:
+      description: Date/heure de début (optionnel, ISO 8601).
+      example: "2026-01-01T00:00:00+01:00"
+    end:
+      description: Date/heure de fin (optionnel, ISO 8601).
+      example: "2026-02-01T00:00:00+01:00"
+    filename:
+      description: Nom du fichier PDF dans /config/www (optionnel).
+      example: "custody_planning.pdf"
