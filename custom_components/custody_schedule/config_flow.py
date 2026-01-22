@@ -880,13 +880,13 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
                 vol.Required("weekday"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": 0, "label": "Lundi"},
-                            {"value": 1, "label": "Mardi"},
-                            {"value": 2, "label": "Mercredi"},
-                            {"value": 3, "label": "Jeudi"},
-                            {"value": 4, "label": "Vendredi"},
-                            {"value": 5, "label": "Samedi"},
-                            {"value": 6, "label": "Dimanche"},
+                            {"value": "0", "label": "Lundi"},
+                            {"value": "1", "label": "Mardi"},
+                            {"value": "2", "label": "Mercredi"},
+                            {"value": "3", "label": "Jeudi"},
+                            {"value": "4", "label": "Vendredi"},
+                            {"value": "5", "label": "Samedi"},
+                            {"value": "6", "label": "Dimanche"},
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
@@ -966,16 +966,16 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Optional("label", default=selected.get("label", "")): cv.string,
-                vol.Required("weekday", default=selected.get("weekday", 0)): selector.SelectSelector(
+                vol.Required("weekday", default=str(selected.get("weekday", 0))): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": 0, "label": "Lundi"},
-                            {"value": 1, "label": "Mardi"},
-                            {"value": 2, "label": "Mercredi"},
-                            {"value": 3, "label": "Jeudi"},
-                            {"value": 4, "label": "Vendredi"},
-                            {"value": 5, "label": "Samedi"},
-                            {"value": 6, "label": "Dimanche"},
+                            {"value": "0", "label": "Lundi"},
+                            {"value": "1", "label": "Mardi"},
+                            {"value": "2", "label": "Mercredi"},
+                            {"value": "3", "label": "Jeudi"},
+                            {"value": "4", "label": "Vendredi"},
+                            {"value": "5", "label": "Samedi"},
+                            {"value": "6", "label": "Dimanche"},
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
