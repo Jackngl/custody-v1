@@ -1,7 +1,7 @@
 {
   "domain": "custody_schedule",
   "name": "Planning de garde",
-  "version": "1.2.23",
+  "version": "1.2.24",
   "after_dependencies": [
     "calendar"
   ],
