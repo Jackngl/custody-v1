@@ -253,19 +253,29 @@ def _normalize_event_datetime(value: Any) -> str | None:
     else:
         return None
     if isinstance(value, datetime):
-        return value.isoformat()
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        return dt_util.as_local(value).isoformat()
     if isinstance(value, date):
         return datetime.combine(value, datetime.min.time(), tzinfo=dt_util.DEFAULT_TIME_ZONE).isoformat()
     if isinstance(value, str):
         parsed = dt_util.parse_datetime(value)
         if parsed:
-            return parsed.isoformat()
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+            return dt_util.as_local(parsed).isoformat()
         try:
             parsed_date = date.fromisoformat(value)
         except ValueError:
             return None
         return datetime.combine(parsed_date, datetime.min.time(), tzinfo=dt_util.DEFAULT_TIME_ZONE).isoformat()
     return None
+
+
+def _ensure_local_tz(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return dt_util.as_local(value)
 
 
 def _ensure_local_tz(value: datetime) -> datetime:
