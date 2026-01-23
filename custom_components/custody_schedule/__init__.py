@@ -16,7 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.components.calendar import CalendarEntityFeature
+from homeassistant.components.calendar import CalendarEntityFeature, CalendarEvent
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -307,6 +307,36 @@ def _calendar_marker(entry_id: str) -> str:
     return f"custody_schedule:{entry_id}"
 
 
+def _normalize_event_to_dict(event: Any) -> dict[str, Any] | None:
+    """Convert a CalendarEvent object or dict to a dict.
+    
+    calendar.get_events can return CalendarEvent objects or dicts.
+    This function normalizes them to dicts for consistent processing.
+    """
+    if isinstance(event, dict):
+        return event
+    if isinstance(event, CalendarEvent):
+        # Convert CalendarEvent to dict
+        result: dict[str, Any] = {
+            "summary": event.summary or "",
+            "description": event.description or "",
+            "location": event.location or "",
+            "start": event.start,
+            "end": event.end,
+        }
+        if hasattr(event, "uid") and event.uid:
+            result["uid"] = event.uid
+        if hasattr(event, "recurrence_id") and event.recurrence_id:
+            result["recurrence_id"] = event.recurrence_id
+        if hasattr(event, "rrule") and event.rrule:
+            result["rrule"] = event.rrule
+        return result
+    # Try to convert other object types
+    if hasattr(event, "__dict__"):
+        return {k: v for k, v in event.__dict__.items() if not k.startswith("_")}
+    return None
+
+
 def _matches_marker(event: dict[str, Any], marker: str) -> bool:
     if not isinstance(event, dict):
         return False
@@ -535,10 +565,12 @@ async def _sync_calendar_events(
     existing_keys: set[tuple[str, str, str]] = set()
     existing_events: list[dict[str, Any]] = []
     for event in events:
-        if not isinstance(event, dict):
+        event_dict = _normalize_event_to_dict(event)
+        if not event_dict:
             continue
-        if marker and not _matches_marker(event, marker):
+        if marker and not _matches_marker(event_dict, marker):
             continue
+        event = event_dict
         summary = event.get("summary") or event.get("message") or ""
         start_val = _normalize_event_datetime(event.get("start"))
         end_val = _normalize_event_datetime(event.get("end"))
@@ -754,10 +786,12 @@ async def _async_purge_calendar_events(
     debug_misses: list[str] = []
 
     if debug and events:
-        sample_event = events[0] if isinstance(events[0], dict) else {}
+        sample_raw = events[0]
+        sample_event = _normalize_event_to_dict(sample_raw) or {}
         LOGGER.info(
-            "Purge debug%s: sample event keys=%s",
+            "Purge debug%s: sample event type=%s keys=%s",
             context,
+            type(sample_raw).__name__,
             ", ".join(sorted(sample_event.keys())) if isinstance(sample_event, dict) else "not a dict",
         )
         if isinstance(sample_event, dict):
@@ -776,8 +810,10 @@ async def _async_purge_calendar_events(
             )
 
     for event in events:
-        if not isinstance(event, dict):
+        event_dict = _normalize_event_to_dict(event)
+        if not event_dict:
             continue
+        event = event_dict
         summary = event.get("summary") or event.get("message") or ""
         description = event.get("description") or ""
         uid, recurrence_id = _extract_event_uid_and_recurrence(event)
