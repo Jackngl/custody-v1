@@ -2,12 +2,12 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
-![Version](https://img.shields.io/badge/version-1.2.39-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.40-blue.svg)
 =======
-![Version](https://img.shields.io/badge/version-1.2.39-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.40-blue.svg)
 >>>>>>> bfdc133 (feat: add purge debug diagnostics)
 =======
-![Version](https://img.shields.io/badge/version-1.2.39-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.40-blue.svg)
 >>>>>>> 4edab65 (feat: improve calendar purge deletion)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.12-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
