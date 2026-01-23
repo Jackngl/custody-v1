@@ -326,32 +326,49 @@ def _extract_event_id(event: dict[str, Any]) -> str | None:
 def _extract_event_uid_and_recurrence(event: dict[str, Any]) -> tuple[str | None, str | None]:
     """Extract UID and recurrence_id from a calendar event.
     
+    Based on Google Calendar implementation:
+    - uid should be event.ical_uuid (from CalendarEvent)
+    - recurrence_id should be event.id if it's a recurring event
+    
     Returns:
         Tuple of (uid, recurrence_id) where either can be None
     """
     uid = None
     recurrence_id = None
     
-    # Try direct uid field first
+    # Google Calendar uses ical_uuid as the UID
+    # Try direct uid field first (CalendarEvent format)
     raw_uid = event.get("uid")
     if isinstance(raw_uid, str) and raw_uid:
         uid = raw_uid
     elif isinstance(raw_uid, dict):
-        for key in ("uid", "value", "text", "id"):
+        for key in ("uid", "value", "text", "id", "ical_uuid"):
             value = raw_uid.get(key)
             if isinstance(value, str) and value:
                 uid = value
                 break
     
-    # Try alternative UID fields
+    # Try ical_uuid directly (Google Calendar internal format)
     if not uid:
-        for key in ("id", "event_id", "iCalUID", "ical_uid", "iCalUid"):
+        raw_ical = event.get("ical_uuid") or event.get("icalUuid")
+        if isinstance(raw_ical, str) and raw_ical:
+            uid = raw_ical
+        elif isinstance(raw_ical, dict):
+            for key in ("value", "text", "uid", "id"):
+                value = raw_ical.get(key)
+                if isinstance(value, str) and value:
+                    uid = value
+                    break
+    
+    # Try alternative UID fields (various formats)
+    if not uid:
+        for key in ("id", "event_id", "iCalUID", "ical_uid", "iCalUid", "icalUuid"):
             value = event.get(key)
             if isinstance(value, str) and value:
                 uid = value
                 break
             elif isinstance(value, dict):
-                for nested in ("value", "text", "uid", "id"):
+                for nested in ("value", "text", "uid", "id", "ical_uuid"):
                     nested_val = value.get(nested)
                     if isinstance(nested_val, str) and nested_val:
                         uid = nested_val
@@ -360,7 +377,8 @@ def _extract_event_uid_and_recurrence(event: dict[str, Any]) -> tuple[str | None
                     break
     
     # Extract recurrence_id if present
-    raw_recurrence = event.get("recurrence_id") or event.get("recurrenceId")
+    # Google Calendar uses event.id for recurring events
+    raw_recurrence = event.get("recurrence_id") or event.get("recurrenceId") or event.get("recurring_event_id")
     if isinstance(raw_recurrence, str) and raw_recurrence:
         recurrence_id = raw_recurrence
     elif isinstance(raw_recurrence, dict):
@@ -369,6 +387,12 @@ def _extract_event_uid_and_recurrence(event: dict[str, Any]) -> tuple[str | None
             if isinstance(value, str) and value:
                 recurrence_id = value
                 break
+    
+    # If event has recurring_event_id, use event.id as recurrence_id
+    if event.get("recurring_event_id") and not recurrence_id:
+        raw_id = event.get("id")
+        if isinstance(raw_id, str) and raw_id:
+            recurrence_id = raw_id
     
     return uid, recurrence_id
 
@@ -792,8 +816,10 @@ async def _async_purge_calendar_events(
             if not uid:
                 missing_id += 1
                 if debug and len(debug_matches) < 10:
+                    all_keys = ", ".join(sorted(event.keys())) if isinstance(event, dict) else "not a dict"
                     debug_matches.append(
-                        f"summary='{_truncate(summary)}' uid=None recurrence_id={recurrence_id} desc='{_truncate(description)}'"
+                        f"summary='{_truncate(summary)}' uid=None recurrence_id={recurrence_id} "
+                        f"all_keys=[{all_keys}] desc='{_truncate(description)}'"
                     )
                 continue
             if debug and len(debug_matches) < 10:
