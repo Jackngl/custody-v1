@@ -1,11 +1,7 @@
 {
   "domain": "custody_schedule",
   "name": "Planning de garde",
-<<<<<<< HEAD
-  "version": "1.2.31",
-=======
   "version": "1.2.32",
->>>>>>> bfdc133 (feat: add purge debug diagnostics)
   "after_dependencies": [
     "calendar"
   ],
