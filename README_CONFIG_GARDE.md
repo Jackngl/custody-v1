@@ -479,9 +479,8 @@ L'application utilise **deux masques de saisie distincts** :
 
 2. **Masque "Vacances scolaires"** :
    - Zone scolaire (A/B/C)
-   - Règle vacances (first_week_odd_year, etc.)
-   - Règle grandes vacances (august_even_year, etc.)
-   - **Configuration complètement séparée**
+   - Répartition des moitiés
+   - **L'été est automatiquement divisé selon cette même règle.**
 
 ### Priorité des règles
 
@@ -549,6 +548,6 @@ Pour toute question sur la configuration de la garde normale :
 
 ---
 
-**Dernière mise à jour** : Version 1.3.5
+**Dernière mise à jour** : Version 1.4.0
 
  

@@ -17,7 +17,6 @@ from homeassistant.util import dt as dt_util, slugify
 
 from .const import (
     CONF_ARRIVAL_TIME,
-    CONF_AUGUST_RULE,
     CONF_CALENDAR_SYNC,
     CONF_CALENDAR_TARGET,
     CONF_CALENDAR_SYNC_DAYS,
@@ -31,7 +30,6 @@ from .const import (
     CONF_EXCEPTIONS_RECURRING,
     CONF_HOLIDAY_API_URL,
     CONF_ICON,
-    CONF_JULY_RULE,
     CONF_LOCATION,
     CONF_NOTES,
     CONF_NOTIFICATIONS,
@@ -41,18 +39,14 @@ from .const import (
     CONF_REFERENCE_YEAR_VACATIONS,
     CONF_SCHOOL_LEVEL,
     CONF_START_DAY,
-    CONF_SUMMER_RULE,
     CONF_VACATION_SPLIT_MODE,
     CONF_ZONE,
-    AUGUST_RULES,
     CUSTODY_TYPES,
     DOMAIN,
     FRENCH_ZONES,
     FRENCH_ZONES_WITH_CITIES,
     HOLIDAY_API,
-    JULY_RULES,
     REFERENCE_YEARS,
-    SUMMER_RULES,
     VACATION_RULES,
     VACATION_SPLIT_MODES,
 )
@@ -176,60 +170,7 @@ def _start_day_selector() -> selector.SelectSelector:
     )
 
 
-def _summer_rule_selector() -> selector.SelectSelector:
-    """Create a summer rule selector with French labels (quinzaines)."""
-    translations = {
-        "july_first_half": "Juillet - 1ère moitié (1-15 juillet)",
-        "july_second_half": "Juillet - 2ème moitié (16-31 juillet)",
-        "august_first_half": "Août - 1ère moitié (1-15 août)",
-        "august_second_half": "Août - 2ème moitié (16-31 août)",
-    }
-    options_list = [{"value": "", "label": "Aucune"}]
-    options_list.extend(
-        [{"value": rule, "label": translations.get(rule, rule)} for rule in SUMMER_RULES]
-    )
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=options_list,
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
 
-
-def _july_rule_selector() -> selector.SelectSelector:
-    """Create a July rule selector with French labels."""
-    translations = {
-        "july_even": "Juillet (années paires)",
-        "july_odd": "Juillet (années impaires)",
-    }
-    options_list = [{"value": "", "label": "Aucune"}]
-    options_list.extend(
-        [{"value": rule, "label": translations.get(rule, rule)} for rule in JULY_RULES]
-    )
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=options_list,
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
-
-
-def _august_rule_selector() -> selector.SelectSelector:
-    """Create an August rule selector with French labels."""
-    translations = {
-        "august_even": "Août (années paires)",
-        "august_odd": "Août (années impaires)",
-    }
-    options_list = [{"value": "", "label": "Aucune"}]
-    options_list.extend(
-        [{"value": rule, "label": translations.get(rule, rule)} for rule in AUGUST_RULES]
-    )
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=options_list,
-            mode=selector.SelectSelectorMode.DROPDOWN,
-        )
-    )
 
 
 def _vacation_split_selector() -> selector.SelectSelector:
@@ -518,11 +459,6 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_SCHOOL_LEVEL, default=self._data.get(CONF_SCHOOL_LEVEL, "primary")
                 ): _school_level_selector(),
                 vol.Required(CONF_VACATION_SPLIT_MODE, default=vacation_split_default): _vacation_split_selector(),
-                # Removing explicit reference year for vacations to simplify 
-                # (it now defaults to the global custody reference if not shown)
-                vol.Optional(CONF_JULY_RULE, default=july_rule_default): _july_rule_selector(),
-                vol.Optional(CONF_AUGUST_RULE, default=august_rule_default): _august_rule_selector(),
-                vol.Optional(CONF_SUMMER_RULE, default=summer_rule_default): _summer_rule_selector(),
             }
         )
         return self.async_show_form(step_id="vacations", data_schema=schema)
@@ -1086,9 +1022,6 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
                     CONF_SCHOOL_LEVEL, default=data.get(CONF_SCHOOL_LEVEL, "primary")
                 ): _school_level_selector(),
                 vol.Required(CONF_VACATION_SPLIT_MODE, default=vacation_split_default): _vacation_split_selector(),
-                vol.Optional(CONF_JULY_RULE, default=july_rule_default): _july_rule_selector(),
-                vol.Optional(CONF_AUGUST_RULE, default=august_rule_default): _august_rule_selector(),
-                vol.Optional(CONF_SUMMER_RULE, default=summer_rule_default): _summer_rule_selector(),
             }
         )
         return self.async_show_form(step_id="vacations", data_schema=schema)

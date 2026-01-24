@@ -25,14 +25,11 @@
       },
       "vacations": {
         "title": "Vacances scolaires",
-        "description": "Configurer les règles de garde pendant les vacances scolaires. Les vacances priment sur la garde classique. La parité de l'année détermine la moitié applicable. Pour l'été, choisissez soit des mois complets (juillet/août), soit des quinzaines.",
+        "description": "Configurer les règles de garde pendant les vacances scolaires. Les vacances priment sur la garde classique. La répartition choisie s'applique automatiquement à toutes les vacances, y compris l'été.",
         "data": {
           "zone": "Zone scolaire",
           "vacation_split_mode": "Répartition des moitiés",
-          "school_level": "Niveau scolaire",
-          "july_rule": "Règle de juillet",
-          "august_rule": "Règle d'août",
-          "summer_rule": "Règle grandes vacances (quinzaines)"
+          "school_level": "Niveau scolaire"
         }
       },
       "advanced": {
@@ -155,14 +152,11 @@
       },
       "vacations": {
         "title": "Vacances scolaires",
-        "description": "Modifier la zone scolaire et les règles de garde pendant les vacances. Les vacances priment sur la garde classique. La parité de l'année détermine la moitié applicable. Pour l'été, choisissez soit des mois complets (juillet/août), soit des quinzaines.",
+        "description": "Modifier la zone scolaire et les règles de garde pendant les vacances. Les vacances priment sur la garde classique. La répartition choisie s'applique automatiquement à toutes les vacances, y compris l'été.",
         "data": {
           "zone": "Zone scolaire",
           "vacation_split_mode": "Répartition des moitiés",
-          "school_level": "Niveau scolaire",
-          "july_rule": "Règle de juillet",
-          "august_rule": "Règle d'août",
-          "summer_rule": "Règle grandes vacances (quinzaines)"
+          "school_level": "Niveau scolaire"
         }
       },
       "advanced": {
@@ -188,20 +182,6 @@
       "two_two_three": "2-2-3",
       "two_two_five_five": "2-2-5-5",
       "custom": "Personnalisé"
-    },
-    "summer_rule": {
-      "july_first_half": "Juillet - 1ère moitié (1-15 juillet)",
-      "july_second_half": "Juillet - 2ème moitié (16-31 juillet)",
-      "august_first_half": "Août - 1ère moitié (1-15 août)",
-      "august_second_half": "Août - 2ème moitié (16-31 août)"
-    },
-    "july_rule": {
-      "july_even": "Juillet (années paires)",
-      "july_odd": "Juillet (années impaires)"
-    },
-    "august_rule": {
-      "august_even": "Août (années paires)",
-      "august_odd": "Août (années impaires)"
     },
     "reference_year": {
       "even": "Paire",

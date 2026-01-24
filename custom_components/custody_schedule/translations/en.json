@@ -25,15 +25,11 @@
       },
       "vacations": {
         "title": "School vacations",
-        "description": "Configure custody rules during school holidays. Vacations take priority over regular custody. Year parity determines the applicable half. For summer, choose either full months (July/August) or fortnights.",
+        "description": "Configure custody rules during school holidays. Vacations take priority over regular custody. The chosen split applies automatically to all holidays, including summer.",
         "data": {
           "zone": "School zone",
-          "reference_year_vacations": "Reference year for vacations (even/odd)",
-          "vacation_split_mode": "Half split (even/odd years)",
-          "school_level": "School level",
-          "july_rule": "July rule (full month)",
-          "august_rule": "August rule (full month)",
-          "summer_rule": "Summer break rule (fortnights)"
+          "vacation_split_mode": "Half split",
+          "school_level": "School level"
         }
       },
       "advanced": {
@@ -156,15 +152,11 @@
       },
       "vacations": {
         "title": "School vacations",
-        "description": "Modify school zone and custody rules during vacations. Vacations take priority over regular custody. Year parity determines the applicable half. For summer, choose either full months (July/August) or fortnights.",
+        "description": "Modify school zone and custody rules during vacations. Vacations take priority over regular custody. The chosen split applies automatically to all holidays, including summer.",
         "data": {
           "zone": "School zone",
-          "reference_year_vacations": "Reference year for vacations (even/odd)",
-          "vacation_split_mode": "Half split (even/odd years)",
-          "school_level": "School level",
-          "july_rule": "July rule (full month)",
-          "august_rule": "August rule (full month)",
-          "summer_rule": "Summer break rule (fortnights)"
+          "vacation_split_mode": "Half split",
+          "school_level": "School level"
         }
       },
       "advanced": {
@@ -190,20 +182,6 @@
       "two_two_three": "2-2-3",
       "two_two_five_five": "2-2-5-5",
       "custom": "Custom"
-    },
-    "summer_rule": {
-      "july_first_half": "July - first half (1-15 July)",
-      "july_second_half": "July - second half (16-31 July)",
-      "august_first_half": "August - first half (1-15 August)",
-      "august_second_half": "August - second half (16-31 August)"
-    },
-    "july_rule": {
-      "july_even": "July (even years)",
-      "july_odd": "July (odd years)"
-    },
-    "august_rule": {
-      "august_even": "August (even years)",
-      "august_odd": "August (odd years)"
     },
     "reference_year": {
       "even": "Even",

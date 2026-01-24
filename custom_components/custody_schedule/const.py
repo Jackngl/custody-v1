@@ -43,10 +43,6 @@ CONF_SCHOOL_LEVEL = "school_level"
 CONF_LOCATION = "location"
 CONF_NOTES = "notes"
 CONF_ZONE = "zone"
-CONF_VACATION_RULE = "vacation_rule"
-CONF_SUMMER_RULE = "summer_rule"
-CONF_JULY_RULE = "july_rule"
-CONF_AUGUST_RULE = "august_rule"
 CONF_VACATION_SPLIT_MODE = "vacation_split_mode"
 CONF_NOTIFICATIONS = "notifications"
 CONF_CALENDAR_SYNC = "calendar_sync"
@@ -74,36 +70,7 @@ FRENCH_ZONES_WITH_CITIES: dict[str, str] = {
     "DOM-TOM": "DOM-TOM",
 }
 
-VACATION_RULES = [
-    "first_week",
-    "second_week",
-    "first_half",
-    "second_half",
-    "even_weeks",
-    "odd_weeks",
-    "even_weekends",
-    "odd_weekends",
-    "july",
-    "august",
-    "custom",
-]
-SUMMER_RULES = [
-    "july_first_half",
-    "july_second_half",
-    "august_first_half",
-    "august_second_half",
-]
 
-# Nouvelles règles pour juillet et août avec choix années paires/impaire
-JULY_RULES = [
-    "july_even",  # Juillet en années paires
-    "july_odd",   # Juillet en années impaires
-]
-
-AUGUST_RULES = [
-    "august_even",  # Août en années paires
-    "august_odd",   # Août en années impaires
-]
 
 CUSTODY_TYPES = {
     "alternate_week": {
