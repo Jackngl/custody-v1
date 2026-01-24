@@ -558,6 +558,51 @@ async def _delete_calendar_event_direct(
         return False
 
 
+async def _get_calendar_events_direct(
+    hass: HomeAssistant, entity_id: str, start_date: datetime, end_date: datetime
+) -> list[Any] | None:
+    """Get calendar events directly from the entity to ensure we get UIDs."""
+    try:
+        # Resolve entity
+        entity = None
+        registry = er.async_get(hass)
+        entity_entry = registry.async_get(entity_id)
+        
+        platform_data = hass.data.get("entity_platform", {})
+        if isinstance(platform_data, dict):
+            calendar_platform = platform_data.get("calendar")
+            if calendar_platform and hasattr(calendar_platform, "entities"):
+                # Try by unique_id first
+                if entity_entry:
+                    for ent in calendar_platform.entities.values():
+                        if hasattr(ent, "unique_id") and ent.unique_id == entity_entry.unique_id:
+                            entity = ent
+                            break
+                # Try by entity_id
+                if not entity:
+                    entity = calendar_platform.entities.get(entity_id)
+
+        if not entity:
+            LOGGER.debug("Direct read: Could not find entity object for %s", entity_id)
+            return None
+
+        if not hasattr(entity, "async_get_events"):
+            LOGGER.debug("Direct read: Entity %s does not have async_get_events", entity_id)
+            return None
+
+        # Call async_get_events directly
+        # Note: async_get_events usually returns list[CalendarEvent]
+        LOGGER.debug("Direct read: Calling async_get_events on %s", entity_id)
+        events = await entity.async_get_events(hass, start_date, end_date)
+        LOGGER.debug("Direct read: Got %d events (type: %s)", len(events), type(events))
+        if events and len(events) > 0:
+             LOGGER.debug("Direct read: Sample event type: %s", type(events[0]))
+        return events
+    except Exception as err:
+        LOGGER.warning("Direct read failed for %s: %s", entity_id, err)
+        return None
+
+
 async def _sync_calendar_events(
     hass: HomeAssistant,
     target: str,
@@ -582,31 +627,37 @@ async def _sync_calendar_events(
     start_range = _ensure_local_tz(now - timedelta(days=1))
     end_range = _ensure_local_tz(now + timedelta(days=days))
 
-    response = await hass.services.async_call(
-        "calendar",
-        "get_events",
-        {
-            "entity_id": target,
-            "start_date_time": start_range.isoformat(),
-            "end_date_time": end_range.isoformat(),
-        },
-        blocking=True,
-        return_response=True,
-    )
-    LOGGER.debug("Calendar get_events response type: %s", type(response).__name__)
+    # Method 1: Try direct entity access first (to get UIDs)
+    events = await _get_calendar_events_direct(hass, target, start_range, end_range)
+    
+    # Method 2: Fallback to service call if direct access failed or returned empty (and we expect something?)
+    if events is None:
+        LOGGER.debug("Direct event read failed/unavailable, falling back to service call")
+        response = await hass.services.async_call(
+            "calendar",
+            "get_events",
+            {
+                "entity_id": target,
+                "start_date_time": start_range.isoformat(),
+                "end_date_time": end_range.isoformat(),
+            },
+            blocking=True,
+            return_response=True,
+        )
+        LOGGER.debug("Calendar get_events response type: %s", type(response).__name__)
 
-    events: list[Any] = []
-    if isinstance(response, list):
-        events = response
-    elif isinstance(response, dict):
-        if "events" in response:
-            events = response.get("events") or []
-        elif target in response:
-            target_payload = response.get(target)
-            if isinstance(target_payload, dict) and "events" in target_payload:
-                events = target_payload.get("events") or []
-            elif isinstance(target_payload, list):
-                events = target_payload
+        events = []
+        if isinstance(response, list):
+            events = response
+        elif isinstance(response, dict):
+            if "events" in response:
+                events = response.get("events") or []
+            elif target in response:
+                target_payload = response.get(target)
+                if isinstance(target_payload, dict) and "events" in target_payload:
+                    events = target_payload.get("events") or []
+                elif isinstance(target_payload, list):
+                    events = target_payload
 
     marker = _calendar_marker(entry_id)
 
@@ -783,30 +834,36 @@ async def _async_purge_calendar_events(
     start_range = _ensure_local_tz(now - timedelta(days=1))
     end_range = _ensure_local_tz(now + timedelta(days=days))
 
-    response = await hass.services.async_call(
-        "calendar",
-        "get_events",
-        {
-            "entity_id": target,
-            "start_date_time": start_range.isoformat(),
-            "end_date_time": end_range.isoformat(),
-        },
-        blocking=True,
-        return_response=True,
-    )
+    # Method 1: Try direct entity access first (to get UIDs)
+    events = await _get_calendar_events_direct(hass, target, start_range, end_range)
+    
+    # Method 2: Fallback to service call
+    if events is None:
+        LOGGER.debug("Direct event read failed/unavailable, falling back to service call")
+        response = await hass.services.async_call(
+            "calendar",
+            "get_events",
+            {
+                "entity_id": target,
+                "start_date_time": start_range.isoformat(),
+                "end_date_time": end_range.isoformat(),
+            },
+            blocking=True,
+            return_response=True,
+        )
 
-    events: list[Any] = []
-    if isinstance(response, list):
-        events = response
-    elif isinstance(response, dict):
-        if "events" in response:
-            events = response.get("events") or []
-        elif target in response:
-            target_payload = response.get(target)
-            if isinstance(target_payload, dict) and "events" in target_payload:
-                events = target_payload.get("events") or []
-            elif isinstance(target_payload, list):
-                events = target_payload
+        events = []
+        if isinstance(response, list):
+            events = response
+        elif isinstance(response, dict):
+            if "events" in response:
+                events = response.get("events") or []
+            elif target in response:
+                target_payload = response.get(target)
+                if isinstance(target_payload, dict) and "events" in target_payload:
+                    events = target_payload.get("events") or []
+                elif isinstance(target_payload, list):
+                    events = target_payload
 
     marker = _calendar_marker(entry_id)
     child_label = config.get(CONF_CHILD_NAME_DISPLAY, config.get(CONF_CHILD_NAME, ""))
