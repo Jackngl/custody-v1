@@ -717,15 +717,9 @@ class CustodyScheduleManager:
             # - split_mode "odd_first": odd years -> first half, even years -> second half
             # - split_mode "odd_second": odd years -> second half, even years -> first half
             if split_mode == "odd_second":
-                rule_for_year = "second_half" if not is_even_year else "first_half"
+                rule = "second_half" if not is_even_year else "first_half"
             else:
-                rule_for_year = "first_half" if not is_even_year else "second_half"
-            
-            # Apply rule only if the user's reference_year matches the current year parity
-            if (reference_year == "even" and is_even_year) or (reference_year == "odd" and not is_even_year):
-                rule = rule_for_year
-            else:
-                rule = None
+                rule = "first_half" if not is_even_year else "second_half"
 
             if not rule:
                 continue
@@ -1250,13 +1244,7 @@ class CustodyScheduleManager:
             else:
                 rule_for_year = "first_half" if not is_even_year else "second_half"
 
-            if (reference_year == "even" and is_even_year) or (reference_year == "odd" and not is_even_year):
-                return (mid, eff_end) if rule_for_year == "second_half" else (eff_start, mid)
-            # Year not assigned to this parent
-            return eff_start, eff_start
-
-            # For other rules (weekends parity, july/august slices, etc.), default to the full effective interval
-            return eff_start, eff_end
+            return (mid, eff_end) if rule_for_year == "second_half" else (eff_start, mid)
         
         # First, check if we're currently in a vacation (effective bounds)
         for holiday in sorted_holidays:
