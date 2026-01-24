@@ -17,6 +17,7 @@ from homeassistant.util import dt as dt_util, slugify
 from .const import (
     CONF_ALSACE_MOSELLE,
     CONF_ARRIVAL_TIME,
+    CONF_AUTO_PARENT_DAYS,
     CONF_CALENDAR_SYNC,
     CONF_CALENDAR_TARGET,
     CONF_CALENDAR_SYNC_DAYS,
@@ -33,6 +34,7 @@ from .const import (
     CONF_LOCATION,
     CONF_NOTES,
     CONF_NOTIFICATIONS,
+    CONF_PARENTAL_ROLE,
     CONF_PHOTO,
     CONF_REFERENCE_YEAR,
     CONF_REFERENCE_YEAR_CUSTODY,
