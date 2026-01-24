@@ -16,8 +16,8 @@
         "description": "Configurer la garde normale hors vacances scolaires. Les jours fériés (vendredi/lundi) étendent automatiquement les weekends. Le jour de départ du cycle ne s'applique pas aux week-ends/semaines parité ISO.",
         "data": {
           "custody_type": "Type de garde",
-          "reference_year_custody": "Année de référence pour la garde classique (paire/impaire)",
-          "start_day": "Jour de départ du cycle (semaines uniquement)",
+          "reference_year_custody": "Mon année de garde (parité)",
+          "start_day": "Jour de départ",
           "arrival_time": "Heure d'arrivée",
           "departure_time": "Heure de départ",
           "location": "Lieu d'échange"
@@ -28,11 +28,10 @@
         "description": "Configurer les règles de garde pendant les vacances scolaires. Les vacances priment sur la garde classique. La parité de l'année détermine la moitié applicable. Pour l'été, choisissez soit des mois complets (juillet/août), soit des quinzaines.",
         "data": {
           "zone": "Zone scolaire",
-          "reference_year_vacations": "Année de référence pour les vacances (paire/impaire)",
-          "vacation_split_mode": "Répartition des moitiés (paire/impaire)",
+          "vacation_split_mode": "Répartition des moitiés",
           "school_level": "Niveau scolaire",
-          "july_rule": "Règle de juillet (mois complet)",
-          "august_rule": "Règle d'août (mois complet)",
+          "july_rule": "Règle de juillet",
+          "august_rule": "Règle d'août",
           "summer_rule": "Règle grandes vacances (quinzaines)"
         }
       },
@@ -142,8 +141,8 @@
         "description": "Modifier la garde normale hors vacances scolaires. Les jours fériés étendent automatiquement les weekends. Le jour de départ du cycle ne s'applique pas aux week-ends/semaines parité ISO.",
         "data": {
           "custody_type": "Type de garde",
-          "reference_year_custody": "Année de référence pour la garde classique (paire/impaire)",
-          "start_day": "Jour de départ du cycle (semaines uniquement)"
+          "reference_year_custody": "Mon année de garde (parité)",
+          "start_day": "Jour de départ"
         }
       },
       "schedule": {
@@ -160,11 +159,10 @@
         "description": "Modifier la zone scolaire et les règles de garde pendant les vacances. Les vacances priment sur la garde classique. La parité de l'année détermine la moitié applicable. Pour l'été, choisissez soit des mois complets (juillet/août), soit des quinzaines.",
         "data": {
           "zone": "Zone scolaire",
-          "reference_year_vacations": "Année de référence pour les vacances (paire/impaire)",
-          "vacation_split_mode": "Répartition des moitiés (paire/impaire)",
+          "vacation_split_mode": "Répartition des moitiés",
           "school_level": "Niveau scolaire",
-          "july_rule": "Règle de juillet (mois complet)",
-          "august_rule": "Règle d'août (mois complet)",
+          "july_rule": "Règle de juillet",
+          "august_rule": "Règle d'août",
           "summer_rule": "Règle grandes vacances (quinzaines)"
         }
       },

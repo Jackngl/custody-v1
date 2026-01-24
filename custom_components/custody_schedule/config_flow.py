@@ -452,9 +452,18 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(
                 CONF_CUSTODY_TYPE, default=custody_type
             ): _custody_type_selector(),
+            # Unified label for reference year
             vol.Required(
                 CONF_REFERENCE_YEAR_CUSTODY, default=reference_year_default
-            ): _reference_year_selector(),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "even", "label": "Je l'ai les années paires"},
+                        {"value": "odd", "label": "Je l'ai les années impaires"},
+                    ],
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
             vol.Required(
                 CONF_ARRIVAL_TIME, default=self._data.get(CONF_ARRIVAL_TIME, "08:00")
             ): selector.TimeSelector(),
@@ -471,7 +480,11 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )] = _start_day_selector()
         
         schema = vol.Schema(schema_dict)
-        return self.async_show_form(step_id="custody", data_schema=schema)
+        return self.async_show_form(
+            step_id="custody", 
+            data_schema=schema,
+            description_placeholder={"child": self._data.get(CONF_CHILD_NAME_DISPLAY, "l'enfant")}
+        )
 
     async def async_step_vacations(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure vacances scolaires - step 3."""
@@ -501,11 +514,12 @@ class CustodyScheduleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_ZONE, default=self._data.get(CONF_ZONE, "A")): _zone_selector(),
-                vol.Required(CONF_REFERENCE_YEAR_VACATIONS, default=reference_year_default): _reference_year_selector(),
-                vol.Optional(CONF_VACATION_SPLIT_MODE, default=vacation_split_default): _vacation_split_selector(),
                 vol.Optional(
                     CONF_SCHOOL_LEVEL, default=self._data.get(CONF_SCHOOL_LEVEL, "primary")
                 ): _school_level_selector(),
+                vol.Required(CONF_VACATION_SPLIT_MODE, default=vacation_split_default): _vacation_split_selector(),
+                # Removing explicit reference year for vacations to simplify 
+                # (it now defaults to the global custody reference if not shown)
                 vol.Optional(CONF_JULY_RULE, default=july_rule_default): _july_rule_selector(),
                 vol.Optional(CONF_AUGUST_RULE, default=august_rule_default): _august_rule_selector(),
                 vol.Optional(CONF_SUMMER_RULE, default=summer_rule_default): _summer_rule_selector(),
@@ -667,9 +681,18 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
             vol.Required(
                 CONF_CUSTODY_TYPE, default=custody_type
             ): _custody_type_selector(),
+            # Unified label for reference year
             vol.Required(
                 CONF_REFERENCE_YEAR_CUSTODY, default=reference_year_default
-            ): _reference_year_selector(),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        {"value": "even", "label": "Je l'ai les années paires"},
+                        {"value": "odd", "label": "Je l'ai les années impaires"},
+                    ],
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
         }
         
         # Only show start_day for custody types that use it
@@ -679,7 +702,11 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
             )] = _start_day_selector()
         
         schema = vol.Schema(schema_dict)
-        return self.async_show_form(step_id="custody", data_schema=schema)
+        return self.async_show_form(
+            step_id="custody", 
+            data_schema=schema,
+            description_placeholder={"child": self._data.get(CONF_CHILD_NAME_DISPLAY, "l'enfant")}
+        )
 
     async def async_step_schedule(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Modify schedule times and location."""
@@ -1055,11 +1082,10 @@ class CustodyScheduleOptionsFlow(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_ZONE, default=data.get(CONF_ZONE, "A")): _zone_selector(),
-                vol.Required(CONF_REFERENCE_YEAR_VACATIONS, default=reference_year_default): _reference_year_selector(),
-                vol.Optional(CONF_VACATION_SPLIT_MODE, default=vacation_split_default): _vacation_split_selector(),
                 vol.Optional(
                     CONF_SCHOOL_LEVEL, default=data.get(CONF_SCHOOL_LEVEL, "primary")
                 ): _school_level_selector(),
+                vol.Required(CONF_VACATION_SPLIT_MODE, default=vacation_split_default): _vacation_split_selector(),
                 vol.Optional(CONF_JULY_RULE, default=july_rule_default): _july_rule_selector(),
                 vol.Optional(CONF_AUGUST_RULE, default=august_rule_default): _august_rule_selector(),
                 vol.Optional(CONF_SUMMER_RULE, default=summer_rule_default): _summer_rule_selector(),
