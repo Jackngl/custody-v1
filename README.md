@@ -1,6 +1,6 @@
 # 👨‍👩‍👧‍👦 Planning de garde (Custody Schedule)
 
-![Version](https://img.shields.io/badge/version-1.2.46-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.47-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.12-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 
